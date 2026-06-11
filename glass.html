@@ -1,0 +1,2284 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Glass</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;450;500;600;700&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* ============================================================
+   GLASS — design tokens
+   ============================================================ */
+:root{
+  --accent: 94 139 255;            /* glacier */
+  --radius: 14px;
+  --blur: 22px;
+  --font-scale: 1;
+  --density: 1;
+
+  --font-ui: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-display: 'Newsreader', Georgia, serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+
+  --ease: cubic-bezier(.32,.72,.24,1);
+  --t-fast: 160ms;
+  --t-med: 280ms;
+}
+
+/* ---------- Light theme ---------- */
+:root, [data-theme="light"]{
+  --bg-base: #eef0f6;
+  --aur-1: rgba(173,196,255,.55);
+  --aur-2: rgba(255,214,224,.42);
+  --aur-3: rgba(196,240,222,.45);
+  --aur-4: rgba(221,208,255,.40);
+
+  --panel: 255 255 255;
+  --panel-a: .58;
+  --panel-strong-a: .78;
+  --border: rgba(255,255,255,.65);
+  --border-soft: rgba(30,40,70,.08);
+  --ink: #1c2333;
+  --ink-2: #5a627a;
+  --ink-3: #8b93ab;
+  --shadow: 0 1px 2px rgba(25,35,65,.05), 0 12px 40px -12px rgba(25,35,65,.18);
+  --shadow-pop: 0 2px 6px rgba(25,35,65,.08), 0 24px 70px -16px rgba(25,35,65,.30);
+  --hover: rgba(30,40,70,.055);
+  --active: rgba(var(--accent)/.13);
+  --code-bg: rgba(30,40,70,.06);
+  --hl: rgba(255,222,120,.55);
+  --scroll: rgba(30,40,70,.18);
+}
+
+/* ---------- Dark theme ---------- */
+[data-theme="dark"]{
+  --bg-base: #0e1018;
+  --aur-1: rgba(70,95,190,.32);
+  --aur-2: rgba(150,80,140,.20);
+  --aur-3: rgba(50,130,120,.20);
+  --aur-4: rgba(95,75,170,.24);
+
+  --panel: 22 26 40;
+  --panel-a: .52;
+  --panel-strong-a: .78;
+  --border: rgba(255,255,255,.10);
+  --border-soft: rgba(255,255,255,.07);
+  --ink: #e8eaf2;
+  --ink-2: #9aa1b8;
+  --ink-3: #646c85;
+  --shadow: 0 1px 2px rgba(0,0,0,.25), 0 14px 44px -12px rgba(0,0,0,.55);
+  --shadow-pop: 0 2px 8px rgba(0,0,0,.35), 0 28px 80px -16px rgba(0,0,0,.65);
+  --hover: rgba(255,255,255,.06);
+  --active: rgba(var(--accent)/.20);
+  --code-bg: rgba(255,255,255,.07);
+  --hl: rgba(255,200,80,.32);
+  --scroll: rgba(255,255,255,.16);
+}
+
+[data-contrast="high"]{
+  --border: rgba(127,127,127,.55);
+  --border-soft: rgba(127,127,127,.45);
+  --panel-a: .92;
+  --panel-strong-a: .97;
+}
+[data-contrast="high"][data-theme="light"]{ --ink:#000; --ink-2:#2a2f40; --ink-3:#4a5066; }
+[data-contrast="high"][data-theme="dark"]{ --ink:#fff; --ink-2:#cfd4e4; --ink-3:#9aa1b8; }
+
+/* ============================================================
+   Base
+   ============================================================ */
+*{ box-sizing:border-box; margin:0; padding:0; }
+html{ font-size: calc(16px * var(--font-scale)); }
+body{
+  font-family: var(--font-ui);
+  color: var(--ink);
+  background: var(--bg-base);
+  height: 100vh;
+  height: 100dvh; /* mobile-safe viewport */
+  overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+  transition: background var(--t-med) var(--ease), color var(--t-med) var(--ease);
+}
+
+/* Aurora backdrop — the light behind the glass */
+.aurora{
+  position: fixed; inset: -20%;
+  z-index: 0; pointer-events: none;
+  background:
+    radial-gradient(38% 42% at 18% 22%, var(--aur-1), transparent 70%),
+    radial-gradient(34% 38% at 82% 16%, var(--aur-2), transparent 70%),
+    radial-gradient(40% 44% at 78% 84%, var(--aur-3), transparent 70%),
+    radial-gradient(36% 40% at 14% 80%, var(--aur-4), transparent 70%);
+  filter: blur(40px);
+  animation: drift 60s var(--ease) infinite alternate;
+  transition: opacity var(--t-med);
+}
+@keyframes drift{
+  0%{ transform: translate3d(0,0,0) scale(1); }
+  50%{ transform: translate3d(2.5%, -2%, 0) scale(1.05); }
+  100%{ transform: translate3d(-2%, 2.5%, 0) scale(1.02); }
+}
+@media (prefers-reduced-motion: reduce){
+  .aurora, .aurora::after{ animation: none; }
+}
+[data-motion="reduced"] .aurora, [data-motion="reduced"] .aurora::after{ animation: none; }
+[data-motion="reduced"] *{ transition-duration: 1ms !important; animation-duration: 1ms !important; }
+
+::selection{ background: rgba(var(--accent)/.30); }
+::-webkit-scrollbar{ width:10px; height:10px; }
+::-webkit-scrollbar-thumb{ background: var(--scroll); border-radius: 8px; border: 3px solid transparent; background-clip: content-box; }
+::-webkit-scrollbar-track{ background: transparent; }
+
+:focus-visible{
+  outline: 2px solid rgb(var(--accent));
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+button{ font-family: inherit; font-size: inherit; color: inherit; background: none; border: none; cursor: pointer; }
+input, select{ font-family: inherit; color: inherit; }
+
+.sr-only{ position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; }
+
+/* ============================================================
+   Glass surfaces
+   ============================================================ */
+.glass{
+  background: rgba(var(--panel) / var(--panel-a));
+  backdrop-filter: blur(var(--blur)) saturate(1.5);
+  -webkit-backdrop-filter: blur(var(--blur)) saturate(1.5);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow);
+  border-radius: var(--radius);
+  transition: background var(--t-med) var(--ease), border-color var(--t-med) var(--ease);
+}
+.glass-strong{
+  background: rgba(var(--panel) / var(--panel-strong-a));
+  backdrop-filter: blur(calc(var(--blur) * 1.4)) saturate(1.6);
+  -webkit-backdrop-filter: blur(calc(var(--blur) * 1.4)) saturate(1.6);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-pop);
+  border-radius: calc(var(--radius) + 4px);
+}
+
+/* ============================================================
+   App shell
+   ============================================================ */
+.app{
+  position: relative; z-index: 1;
+  display: flex; gap: calc(clamp(8px, 1vw, 12px) * var(--density));
+  height: 100vh;
+  height: 100dvh;
+  padding: calc(clamp(8px, 1.2vw, 12px) * var(--density));
+}
+
+/* ---------- Sidebar ---------- */
+.sidebar{
+  width: clamp(216px, 21vw, 264px); flex-shrink: 0;
+  display: flex; flex-direction: column;
+  overflow: hidden;
+  transition: width var(--t-med) var(--ease), opacity var(--t-med) var(--ease), padding var(--t-med) var(--ease), margin var(--t-med) var(--ease);
+}
+.app[data-sidebar="closed"] .sidebar{
+  width: 0; opacity: 0; border-width: 0;
+  margin-right: calc(-12px * var(--density));
+  pointer-events: none;
+}
+.sb-head{
+  display:flex; align-items:center; gap:10px;
+  padding: calc(14px * var(--density)) calc(14px * var(--density)) calc(8px * var(--density));
+}
+.logo{
+  width: 30px; height: 30px; border-radius: 9px;
+  background: linear-gradient(135deg, rgba(var(--accent)/.95), rgba(var(--accent)/.55));
+  box-shadow: inset 0 1px 1px rgba(255,255,255,.5), 0 4px 12px -3px rgba(var(--accent)/.6);
+  display:grid; place-items:center;
+  flex-shrink: 0;
+}
+/* SVG glyph: exact optical centering regardless of font metrics */
+.logo svg{ width:100%; height:100%; display:block; }
+.logo text{
+  fill:#fff; font-family: var(--font-display), Georgia, serif;
+  font-size: 16px; font-weight: 600;
+}
+.sb-title{ font-weight: 650; letter-spacing: -0.01em; font-size: 1.0rem; flex:1; white-space:nowrap; }
+.sb-scroll{ flex:1; overflow-y:auto; padding: 4px 8px calc(10px * var(--density)); }
+.sb-section{ margin-top: calc(14px * var(--density)); }
+.sb-label{
+  display:flex; align-items:center; justify-content: space-between;
+  font-size: .68rem; font-weight: 650; letter-spacing:.09em; text-transform: uppercase;
+  color: var(--ink-3); padding: 4px 8px 6px; white-space: nowrap;
+}
+.sb-label button{ opacity:0; transition: opacity var(--t-fast); color: var(--ink-2); padding:2px 6px; border-radius:6px; font-size:.85rem; line-height:1; }
+.sb-section:hover .sb-label button, .sb-label button:focus-visible{ opacity:1; }
+.sb-label button:hover{ background: var(--hover); }
+
+.nav-item{
+  width:100%; display:flex; align-items:center; gap:9px;
+  padding: calc(7px * var(--density)) 9px;
+  border-radius: calc(var(--radius) - 5px);
+  font-size: .875rem; font-weight: 480; color: var(--ink-2);
+  transition: background var(--t-fast), color var(--t-fast);
+  text-align:left; white-space: nowrap; overflow: hidden;
+  position: relative;
+}
+.nav-item svg{ flex-shrink:0; width:16px; height:16px; opacity:.8; }
+.nav-item:hover{ background: var(--hover); color: var(--ink); }
+.nav-item[aria-current="true"]{ background: var(--active); color: var(--ink); font-weight: 560; }
+.nav-item[aria-current="true"]::before{
+  content:''; position:absolute; left:0; top:22%; bottom:22%; width:3px;
+  border-radius: 3px; background: rgb(var(--accent));
+}
+.nav-item .truncate{ flex:1; overflow:hidden; text-overflow:ellipsis; }
+.nav-item .meta-ico{ display:flex; gap:4px; align-items:center; color: var(--ink-3); }
+.nav-item .meta-ico svg{ width:12px; height:12px; }
+.nav-item .row-x{
+  opacity:0; color:var(--ink-3); border-radius:6px; padding:2px; line-height:0; flex-shrink:0;
+}
+.nav-item:hover .row-x, .nav-item:focus-within .row-x{ opacity:1; }
+.row-x:hover{ background: var(--hover); color: var(--ink); }
+.dot{ width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+
+.sb-foot{ padding: 8px; border-top: 1px solid var(--border-soft); display:flex; gap:6px; }
+.sb-foot .nav-item{ flex:1; }
+
+.empty-hint{ font-size:.78rem; color:var(--ink-3); padding: 6px 9px; font-style: italic; }
+
+/* ---------- Main column ---------- */
+.main-col{ flex:1; display:flex; flex-direction:column; gap: calc(12px * var(--density)); min-width:0; }
+.topbar{
+  display:flex; align-items:center; gap:8px;
+  padding: calc(8px * var(--density)) calc(10px * var(--density));
+  flex-shrink: 0;
+}
+.icon-btn{
+  display:grid; place-items:center;
+  width:34px; height:34px; border-radius: calc(var(--radius) - 5px);
+  color: var(--ink-2);
+  transition: background var(--t-fast), color var(--t-fast), transform var(--t-fast);
+}
+.icon-btn:hover{ background: var(--hover); color: var(--ink); }
+.icon-btn:active{ transform: scale(.93); }
+.icon-btn svg{ width:17px; height:17px; }
+.crumbs{ flex:1; min-width:0; display:flex; align-items:center; gap:6px; font-size:.875rem; color: var(--ink-2); overflow:hidden; }
+.crumbs b{ color: var(--ink); font-weight: 560; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.search-pill{
+  display:flex; align-items:center; gap:8px;
+  padding: 7px 12px; border-radius: 999px;
+  background: var(--hover); color: var(--ink-3);
+  font-size: .82rem; transition: background var(--t-fast);
+  border: 1px solid transparent;
+}
+.search-pill:hover{ background: var(--active); color: var(--ink-2); }
+.search-pill kbd{ font-family: var(--font-ui); font-size:.7rem; background: rgba(var(--panel)/.9); border:1px solid var(--border-soft); padding:1px 6px; border-radius:6px; }
+
+.content{ flex:1; overflow-y:auto; position:relative; display:flex; flex-direction:column; }
+.content-inner{ width:100%; flex:1 0 auto; max-width: 860px; margin: 0 auto; padding: calc(clamp(18px, 3.4vw, 30px) * var(--density)) calc(clamp(16px, 4vw, 34px) * var(--density)) calc(48px * var(--density)); }
+
+/* ---------- Right panel ---------- */
+.rpanel{
+  width: clamp(228px, 22vw, 270px); flex-shrink:0; overflow-y:auto;
+  padding: calc(16px * var(--density));
+  transition: width var(--t-med) var(--ease), opacity var(--t-med) var(--ease), padding var(--t-med) var(--ease), margin var(--t-med) var(--ease);
+}
+.app[data-rpanel="closed"] .rpanel{
+  width:0; opacity:0; padding-left:0; padding-right:0; border-width:0;
+  margin-left: calc(-12px * var(--density)); pointer-events:none;
+}
+.rp-section{ margin-bottom: calc(20px * var(--density)); }
+.rp-label{ font-size:.68rem; font-weight:650; letter-spacing:.09em; text-transform:uppercase; color:var(--ink-3); margin-bottom:8px; white-space:nowrap; }
+.rp-row{ display:flex; justify-content:space-between; font-size:.82rem; padding: 4px 0; color: var(--ink-2); gap: 10px;}
+.rp-row b{ color: var(--ink); font-weight: 540; text-align:right; }
+.tag{
+  display:inline-flex; align-items:center; gap:5px;
+  font-size:.74rem; font-weight:530;
+  padding: 3px 9px; border-radius: 999px;
+  background: rgba(var(--accent)/.13); color: rgb(var(--accent));
+  border: 1px solid rgba(var(--accent)/.22);
+}
+[data-theme="dark"] .tag{ background: rgba(var(--accent)/.18); color: rgb(var(--accent)); filter: brightness(1.25); }
+.tag button{ line-height:0; opacity:.6; } .tag button:hover{ opacity:1; }
+.tag-wrap{ display:flex; flex-wrap:wrap; gap:6px; }
+.tag-input{
+  width:100%; margin-top:8px; font-size:.8rem; padding:6px 10px;
+  border-radius: calc(var(--radius) - 5px); border:1px solid var(--border-soft);
+  background: var(--hover); color: var(--ink); outline:none;
+}
+.tag-input:focus{ border-color: rgba(var(--accent)/.5); }
+
+/* ============================================================
+   Editor
+   ============================================================ */
+.note-title{
+  width:100%; border:none; background:transparent; outline:none;
+  font-family: var(--font-display);
+  font-size: clamp(1.75rem, 1.15rem + 2.2vw, 2.45rem); font-weight: 500; letter-spacing: -0.015em;
+  color: var(--ink); line-height: 1.15;
+  margin-bottom: 6px;
+}
+.note-title::placeholder{ color: var(--ink-3); opacity:.7; }
+.note-sub{ display:flex; align-items:center; gap:14px; font-size:.78rem; color:var(--ink-3); margin-bottom: calc(26px * var(--density)); flex-wrap:wrap; }
+.note-sub .pin-flag{ color: rgb(var(--accent)); display:inline-flex; align-items:center; gap:4px; font-weight:550; }
+
+/* ---------- Bottom-docked formatting toolbar (notes only) ----------
+   Lives at the bottom of the note panel. Hidden by default; revealed by
+   hovering near the bottom edge, clicking the handle, keyboard focus,
+   or pinning it with the pin button (not pinned by default).            */
+#tbDock{
+  position: sticky; bottom: 0; z-index: 25;
+  display: none; justify-content: center;
+  margin-top: auto;
+  pointer-events: none;
+}
+#tbDock.has-tb{ display: flex; }
+.tb-wrap{ display:flex; flex-direction:column; align-items:center; min-width:0; }
+.toolbar{
+  display:inline-flex; align-items:center; gap:2px; padding: 5px;
+  flex-wrap: wrap; justify-content: center;
+  max-width: calc(100vw - 48px);
+  /* solid surface — deliberately NOT frosted glass */
+  background: rgb(var(--panel));
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-pop);
+  margin-bottom: 8px;
+  opacity: 0; transform: translateY(10px) scale(.98); visibility: hidden;
+  pointer-events: none;
+  transition: opacity .22s var(--ease), transform .3s var(--ease), visibility 0s linear .3s;
+}
+#tbDock.open .toolbar{
+  opacity: 1; transform: none; visibility: visible; pointer-events: auto;
+  transition: opacity .22s var(--ease), transform .3s var(--ease), visibility 0s;
+}
+.tb-handle{
+  pointer-events: auto;
+  width: 46px; height: 17px;
+  border-radius: 9px 9px 0 0;
+  background: rgb(var(--panel));
+  border: 1px solid var(--border-soft); border-bottom: none;
+  color: var(--ink-3);
+  display: grid; place-items: center;
+  transition: color var(--t-fast), background var(--t-fast);
+}
+.tb-handle:hover{ color: var(--ink); }
+.tb-handle svg{ width: 12px; height: 12px; transition: transform .3s var(--ease); }
+#tbDock.open .tb-handle svg{ transform: rotate(180deg); }
+.tb-pin[aria-pressed="true"]{ color: rgb(var(--accent)); background: rgba(var(--accent)/.13); }
+.tb-btn{
+  width:30px; height:30px; display:grid; place-items:center;
+  border-radius: 8px; color: var(--ink-2); font-size:.85rem;
+  transition: background var(--t-fast), color var(--t-fast);
+}
+.tb-btn:hover{ background: var(--hover); color: var(--ink); }
+.tb-btn svg{ width:15px; height:15px; display:block; }
+.tb-btn b, .tb-btn i, .tb-btn u, .tb-btn s, .tb-btn span{ line-height:1; display:inline-block; transform: translateY(-.5px); }
+.tb-sep{ align-self: stretch; }
+.tb-sep{ width:1px; background: var(--border-soft); margin: 5px 4px; }
+.tb-hint{ align-self:center; font-size:.72rem; color:var(--ink-3); padding:0 8px; line-height:1; }
+
+.editor{
+  outline: none;
+  font-size: 1.02rem; line-height: 1.75;
+  color: var(--ink); min-height: 40vh;
+  caret-color: rgb(var(--accent));
+}
+.editor:empty::before, .editor.is-empty::before{
+  content: attr(data-placeholder);
+  color: var(--ink-3); pointer-events:none; position:absolute;
+}
+.editor h1, .editor h2, .editor h3{
+  font-family: var(--font-display); font-weight: 550; letter-spacing:-0.01em;
+  margin: 1.4em 0 .45em; line-height:1.25;
+}
+.editor h1{ font-size:1.8rem; } .editor h2{ font-size:1.45rem; } .editor h3{ font-size:1.18rem; }
+.editor p{ margin: .55em 0; }
+.editor ul, .editor ol{ margin:.55em 0; padding-left: 1.5em; }
+.editor li{ margin:.25em 0; }
+.editor blockquote{
+  margin: 1em 0; padding: 2px 0 2px 16px;
+  border-left: 3px solid rgba(var(--accent)/.6);
+  color: var(--ink-2); font-style: italic;
+  font-family: var(--font-display); font-size: 1.08em;
+}
+.editor pre{
+  font-family: var(--font-mono); font-size:.85em;
+  background: var(--code-bg); border:1px solid var(--border-soft);
+  border-radius: calc(var(--radius) - 4px);
+  padding: 14px 16px; margin: 1em 0; overflow-x:auto; white-space: pre-wrap;
+}
+.editor code{ font-family: var(--font-mono); font-size:.86em; background: var(--code-bg); padding:2px 6px; border-radius:6px; }
+.editor pre code{ background:none; padding:0; }
+.editor hr{ border:none; height:1px; background: var(--border-soft); margin: 1.8em 0; }
+.editor mark{ background: var(--hl); color:inherit; border-radius:3px; padding:0 2px; }
+.editor a{ color: rgb(var(--accent)); }
+.editor .callout{
+  display:flex; gap:12px; align-items:flex-start;
+  background: rgba(var(--accent)/.09); border:1px solid rgba(var(--accent)/.2);
+  border-radius: calc(var(--radius) - 3px); padding: 13px 16px; margin: 1em 0;
+}
+.editor .callout::before{ content:'💡'; }
+.editor ul.checklist{ list-style:none; padding-left:.2em; }
+.editor ul.checklist li{ display:flex; gap:9px; align-items:flex-start; }
+.editor ul.checklist li::before{
+  content:''; width:16px; height:16px; flex-shrink:0; margin-top:.32em;
+  border:1.5px solid var(--ink-3); border-radius:5px; cursor:pointer;
+  transition: background var(--t-fast), border-color var(--t-fast);
+}
+.editor ul.checklist li.done::before{
+  background: rgb(var(--accent)); border-color: rgb(var(--accent));
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 6L9 17l-5-5'/%3E%3C/svg%3E");
+  background-size: 11px; background-position:center; background-repeat:no-repeat;
+}
+.editor ul.checklist li.done{ color: var(--ink-3); text-decoration: line-through; }
+.editor table{ border-collapse: collapse; margin: 1em 0; width:100%; font-size:.92em; }
+.editor th, .editor td{ border:1px solid var(--border-soft); padding: 8px 12px; text-align:left; }
+.editor th{ background: var(--hover); font-weight:600; }
+
+/* ---------- Slash menu / palette ---------- */
+.float-menu{
+  position: fixed; z-index: 60; min-width: 230px;
+  padding: 6px; max-height: 320px; overflow-y:auto;
+}
+.fm-item{
+  width:100%; display:flex; align-items:center; gap:11px;
+  padding: 8px 10px; border-radius: calc(var(--radius) - 6px);
+  font-size:.86rem; text-align:left; color: var(--ink-2);
+}
+.fm-item .fm-ico{
+  width:30px; height:30px; display:grid; place-items:center; flex-shrink:0;
+  border-radius:8px; background: var(--hover); font-family: var(--font-display); font-size:.9rem;
+}
+.fm-item.sel, .fm-item:hover{ background: var(--active); color: var(--ink); }
+.fm-item small{ display:block; color: var(--ink-3); font-size:.72rem; }
+
+/* ---------- Command palette ---------- */
+.overlay{
+  position: fixed; inset:0; z-index: 80;
+  background: rgba(10,14,28,.30);
+  backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+  display:flex; justify-content:center; align-items:flex-start;
+  padding-top: 14vh;
+  opacity:0; pointer-events:none; transition: opacity var(--t-fast);
+}
+.overlay.open{ opacity:1; pointer-events:auto; }
+.palette{
+  width: min(580px, 92vw); overflow:hidden;
+  transform: translateY(-8px) scale(.985); transition: transform var(--t-med) var(--ease);
+}
+.overlay.open .palette{ transform: none; }
+.pal-input{
+  width:100%; border:none; outline:none; background:transparent;
+  font-size: 1.05rem; padding: 18px 20px; color: var(--ink);
+  border-bottom: 1px solid var(--border-soft);
+}
+.pal-list{ max-height: 380px; overflow-y:auto; padding: 8px; }
+.pal-group{ font-size:.66rem; font-weight:650; letter-spacing:.09em; text-transform:uppercase; color:var(--ink-3); padding: 10px 10px 5px; }
+.pal-item{
+  width:100%; display:flex; align-items:center; gap:12px;
+  padding: 9px 11px; border-radius: calc(var(--radius) - 5px);
+  font-size:.9rem; text-align:left; color: var(--ink-2);
+}
+.pal-item.sel{ background: var(--active); color: var(--ink); }
+.pal-item svg{ width:16px; height:16px; flex-shrink:0; opacity:.75; }
+.pal-item .pi-sub{ margin-left:auto; font-size:.72rem; color:var(--ink-3); white-space:nowrap; }
+.pal-empty{ padding: 26px; text-align:center; color: var(--ink-3); font-size:.88rem; }
+
+/* ============================================================
+   Cards / Home / Projects
+   ============================================================ */
+.page-h{
+  font-family: var(--font-display); font-weight:500; letter-spacing:-0.015em;
+  font-size: clamp(1.55rem, 1.1rem + 2vw, 2.2rem); margin-bottom: 4px;
+}
+.page-sub{ color: var(--ink-2); font-size:.92rem; margin-bottom: calc(28px * var(--density)); }
+.grid{ display:grid; grid-template-columns: repeat(auto-fill, minmax(min(225px, 100%), 1fr)); gap: calc(14px * var(--density)); }
+.card{
+  padding: calc(16px * var(--density));
+  cursor:pointer; text-align:left; width:100%;
+  transition: transform var(--t-fast) var(--ease), box-shadow var(--t-fast), background var(--t-med);
+  display:flex; flex-direction:column; gap:8px;
+}
+.card:hover{ transform: translateY(-2px); box-shadow: var(--shadow-pop); }
+.card h3{ font-size:.95rem; font-weight:600; letter-spacing:-0.005em; display:flex; align-items:center; gap:7px; }
+.card h3 svg{ width:14px; height:14px; color: rgb(var(--accent)); flex-shrink:0; }
+.card p{ font-size:.8rem; color: var(--ink-2); line-height:1.55; display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden; }
+.card .card-foot{ margin-top:auto; display:flex; align-items:center; gap:8px; font-size:.72rem; color:var(--ink-3); padding-top: 6px; flex-wrap: wrap;}
+.status-chip{ display:inline-flex; align-items:center; gap:6px; font-size:.72rem; font-weight:560; padding:3px 10px; border-radius:999px; }
+.s-planned{ background:rgba(150,150,170,.16); color:var(--ink-2); }
+.s-active{ background:rgba(80,180,120,.16); color:#3a9d68; }
+.s-paused{ background:rgba(230,170,70,.18); color:#bf8a2e; }
+.s-completed{ background:rgba(var(--accent)/.15); color:rgb(var(--accent)); }
+.s-archived{ background:rgba(150,150,170,.13); color:var(--ink-3); }
+[data-theme="dark"] .s-active{ color:#6fd49a; } [data-theme="dark"] .s-paused{ color:#e8b75c; }
+
+.section-h{
+  display:flex; align-items:baseline; justify-content:space-between;
+  margin: calc(34px * var(--density)) 0 calc(14px * var(--density));
+}
+.section-h h2{ font-family:var(--font-display); font-weight:550; font-size:1.3rem; letter-spacing:-0.01em; }
+.section-h:first-child{ margin-top:0; }
+.link-btn{ font-size:.8rem; color: rgb(var(--accent)); font-weight:550; border-radius:6px; padding: 2px 4px;}
+.link-btn:hover{ text-decoration:underline; }
+
+.greet{ font-family: var(--font-display); font-size: clamp(1.8rem, 1.2rem + 2.4vw, 2.5rem); font-weight:480; letter-spacing:-0.02em; line-height:1.15; }
+.greet em{ font-style: italic; color: rgb(var(--accent)); }
+.greet-sub{ color: var(--ink-2); margin: 10px 0 calc(34px * var(--density)); font-size:.95rem; }
+
+.btn{
+  display:inline-flex; align-items:center; gap:8px;
+  padding: 9px 16px; border-radius: calc(var(--radius) - 3px);
+  font-size:.86rem; font-weight:560;
+  background: rgb(var(--accent)); color:#fff;
+  box-shadow: 0 4px 14px -4px rgba(var(--accent)/.55), inset 0 1px 0 rgba(255,255,255,.25);
+  transition: transform var(--t-fast), filter var(--t-fast);
+}
+.btn:hover{ filter: brightness(1.07); } .btn:active{ transform: scale(.97); }
+.btn.ghost{
+  background: var(--hover); color: var(--ink); box-shadow:none;
+  border:1px solid var(--border-soft);
+}
+.btn svg{ width:15px; height:15px; }
+
+/* project page */
+.proj-cover{
+  height: 120px; border-radius: var(--radius); margin-bottom: 20px;
+  background: linear-gradient(120deg, rgba(var(--accent)/.55), rgba(var(--accent)/.12) 60%, transparent);
+  border:1px solid var(--border);
+  position:relative; overflow:hidden;
+}
+.proj-cover::after{
+  content:''; position:absolute; inset:0;
+  background: radial-gradient(60% 120% at 80% 0%, rgba(255,255,255,.35), transparent 60%);
+}
+.proj-desc{
+  width:100%; border:none; background:transparent; outline:none; resize:none;
+  color: var(--ink-2); font-size:.95rem; line-height:1.6; font-family:inherit;
+}
+.meta-bar{ display:flex; gap:10px; align-items:center; margin: 14px 0 26px; flex-wrap:wrap; }
+.select{
+  appearance:none; border:1px solid var(--border-soft); background: var(--hover);
+  padding: 6px 28px 6px 12px; border-radius: 999px; font-size:.8rem; font-weight:550;
+  color: var(--ink); cursor:pointer; outline:none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23888' stroke-width='2.5' stroke-linecap='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat:no-repeat; background-position: right 9px center; background-size:12px;
+}
+.progress{ height:7px; border-radius:99px; background: var(--hover); overflow:hidden; flex:1; min-width: 120px;}
+.progress > div{ height:100%; border-radius:99px; background: linear-gradient(90deg, rgba(var(--accent)/.7), rgb(var(--accent))); transition: width var(--t-med) var(--ease); }
+
+.task-row{
+  display:flex; align-items:center; gap:11px; padding: 9px 12px;
+  border-radius: calc(var(--radius) - 4px);
+  transition: background var(--t-fast);
+}
+.task-row:hover{ background: var(--hover); }
+.task-check{
+  width:18px; height:18px; border:1.6px solid var(--ink-3); border-radius:6px;
+  display:grid; place-items:center; flex-shrink:0;
+  transition: background var(--t-fast), border-color var(--t-fast);
+}
+.task-row[data-done="1"] .task-check{ background: rgb(var(--accent)); border-color: rgb(var(--accent)); }
+.task-row[data-done="1"] .task-check svg{ opacity:1; }
+.task-check svg{ width:11px; height:11px; color:#fff; opacity:0; }
+.task-row[data-done="1"] span{ color: var(--ink-3); text-decoration: line-through; }
+.task-row span{ flex:1; font-size:.89rem; }
+.task-add{
+  display:flex; gap:10px; margin-top:8px;
+}
+.task-add input{
+  flex:1; border:1px solid var(--border-soft); background: var(--hover);
+  border-radius: calc(var(--radius) - 4px); padding: 8px 13px; font-size:.86rem; outline:none; color:var(--ink);
+}
+.task-add input:focus{ border-color: rgba(var(--accent)/.5); }
+
+.list-row{
+  width:100%; display:flex; align-items:center; gap:12px; text-align:left;
+  padding: 11px 14px; border-radius: calc(var(--radius) - 4px);
+  transition: background var(--t-fast); color: var(--ink-2); font-size:.89rem;
+}
+.list-row:hover{ background: var(--hover); color:var(--ink); }
+.list-row b{ color: var(--ink); font-weight:550; flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+.list-row .lr-time{ font-size:.74rem; color:var(--ink-3); white-space:nowrap; }
+.list-row svg{ width:15px; height:15px; flex-shrink:0; opacity:.7; }
+
+/* ============================================================
+   Settings
+   ============================================================ */
+.set-card{ padding: calc(20px * var(--density)); margin-bottom: calc(16px * var(--density)); }
+.set-card h3{ font-size:.95rem; font-weight:620; margin-bottom: 4px; }
+.set-card .hint{ font-size:.8rem; color: var(--ink-2); margin-bottom: 16px; }
+.set-row{ display:flex; align-items:center; justify-content:space-between; gap: 18px; padding: 10px 0; border-top:1px solid var(--border-soft); }
+.set-row:first-of-type{ border-top:none; }
+.set-row .sl{ font-size:.875rem; font-weight:520; }
+.set-row .sd{ font-size:.76rem; color:var(--ink-3); margin-top:2px; }
+.swatches{ display:flex; gap:8px; }
+.swatch{
+  width:26px; height:26px; border-radius:50%;
+  border:2px solid transparent; box-shadow: inset 0 1px 2px rgba(255,255,255,.4), 0 2px 6px rgba(0,0,0,.18);
+  transition: transform var(--t-fast);
+}
+.swatch:hover{ transform: scale(1.12); }
+.swatch[aria-pressed="true"]{ border-color: var(--ink); transform: scale(1.12); }
+.seg{
+  display:inline-flex; background: var(--hover); border-radius: 999px; padding:3px; border:1px solid var(--border-soft);
+}
+.seg button{
+  padding: 5px 14px; border-radius:999px; font-size:.8rem; font-weight:540; color:var(--ink-2);
+  transition: background var(--t-fast), color var(--t-fast);
+}
+.seg button[aria-pressed="true"]{ background: rgba(var(--panel)/.95); color: var(--ink); box-shadow: 0 1px 4px rgba(0,0,0,.12); }
+.slider{ accent-color: rgb(var(--accent)); width: 160px; }
+
+.switch{
+  width:42px; height:24px; border-radius:99px; background: var(--hover); border:1px solid var(--border-soft);
+  position:relative; transition: background var(--t-fast); flex-shrink: 0;
+}
+.switch::after{
+  content:''; position:absolute; top:2px; left:2px; width:18px; height:18px; border-radius:50%;
+  background:#fff; box-shadow: 0 1px 4px rgba(0,0,0,.25); transition: transform var(--t-fast) var(--ease);
+}
+.switch[aria-checked="true"]{ background: rgb(var(--accent)); border-color: rgb(var(--accent)); }
+.switch[aria-checked="true"]::after{ transform: translateX(18px); }
+
+/* theme toggle in topbar */
+.theme-toggle{ position:relative; overflow:hidden; }
+.theme-toggle svg{ transition: transform var(--t-med) var(--ease), opacity var(--t-med); position:absolute; }
+.theme-toggle .sun{ transform: translateY(0); opacity:1; }
+.theme-toggle .moon{ transform: translateY(130%); opacity:0; }
+[data-theme="dark"] .theme-toggle .sun{ transform: translateY(-130%); opacity:0; }
+[data-theme="dark"] .theme-toggle .moon{ transform: translateY(0); opacity:1; }
+
+/* toast */
+.toast{
+  position:fixed; bottom: 26px; left:50%; transform: translate(-50%, 16px);
+  z-index: 100; padding: 10px 18px; font-size:.85rem; font-weight:530;
+  opacity:0; pointer-events:none; transition: opacity var(--t-fast), transform var(--t-med) var(--ease);
+}
+.toast.show{ opacity:1; transform: translate(-50%, 0); }
+
+/* ============================================================
+   Focus mode — panels glide away; the topbar hides and drops
+   back down (as an overlay, no layout shift) when you hover
+   near the top of the window or focus into it.
+   ============================================================ */
+.app[data-focus="on"] .sidebar{
+  width: 0; opacity: 0; border-width: 0;
+  margin-right: calc(-12px * var(--density));
+  pointer-events: none;
+}
+.app[data-focus="on"] .rpanel{
+  width: 0; opacity: 0; padding-left: 0; padding-right: 0; border-width: 0;
+  margin-left: calc(-12px * var(--density));
+  pointer-events: none;
+}
+.topbar{
+  transition:
+    transform .45s var(--ease),
+    opacity .32s var(--ease),
+    margin-bottom .45s var(--ease);
+  position: relative; z-index: 30;
+}
+.app[data-focus="on"] .topbar{
+  margin-bottom: calc(-1 * var(--topbar-h, 52px) - 12px * var(--density));
+  transform: translateY(calc(-1 * var(--topbar-h, 52px) - 18px));
+  opacity: 0;
+  pointer-events: none;
+}
+.app[data-focus="on"].peek .topbar{
+  transform: translateY(0);
+  opacity: 1;
+  pointer-events: auto;
+}
+
+
+/* ============================================================
+   Motion — keyframes & fluid transitions
+   (all disabled by Reduce motion / prefers-reduced-motion)
+   ============================================================ */
+@keyframes viewIn{
+  from{ opacity:0; transform: translateY(10px); }
+  to{ opacity:1; transform: none; }
+}
+.content-inner.anim{ animation: viewIn .32s var(--ease) both; }
+
+@keyframes rise{
+  from{ opacity:0; transform: translateY(12px) scale(.985); }
+  to{ opacity:1; transform: none; }
+}
+.grid > .card, .list-row.anim{
+  animation: rise .4s var(--ease) backwards;
+  animation-delay: calc(var(--i, 0) * 38ms);
+}
+
+@keyframes barIn{ from{ transform: scaleY(0); } to{ transform: scaleY(1); } }
+.nav-item[aria-current="true"]::before{ animation: barIn .28s var(--ease); }
+
+/* checkbox pop + animated strike-through (editor checklists) */
+@keyframes pop{
+  0%{ transform: scale(.7); } 55%{ transform: scale(1.18); } 100%{ transform: scale(1); }
+}
+.editor ul.checklist li{
+  text-decoration: line-through; text-decoration-color: transparent;
+  transition: color .35s var(--ease), text-decoration-color .35s var(--ease);
+}
+.editor ul.checklist li.done{ text-decoration-color: currentColor; }
+.editor ul.checklist li::before{ transition: background .2s, border-color .2s, transform .2s; }
+.editor ul.checklist li.done::before{ animation: pop .3s var(--ease); }
+
+/* project tasks: growing strike line + pop */
+.task-row span{
+  background-image: linear-gradient(currentColor, currentColor);
+  background-repeat: no-repeat; background-position: 0 58%;
+  background-size: 0% 1.5px;
+  transition: background-size .35s var(--ease), color .3s var(--ease);
+}
+.task-row[data-done="1"] span{ background-size: 100% 1.5px; text-decoration: none; }
+.task-row[data-done="1"] .task-check{ animation: pop .3s var(--ease); }
+.task-check svg{ transition: opacity .15s; }
+
+/* tag suggestions */
+.tag.ghost{
+  background: var(--hover); color: var(--ink-2); border-color: var(--border-soft);
+  cursor: pointer; transition: background var(--t-fast), color var(--t-fast), transform var(--t-fast);
+}
+.tag.ghost:hover{ background: rgba(var(--accent)/.13); color: rgb(var(--accent)); transform: translateY(-1px); }
+@keyframes tagIn{ from{ opacity:0; transform: scale(.8); } to{ opacity:1; transform: scale(1); } }
+.tag{ animation: tagIn .22s var(--ease); }
+
+/* ============================================================
+   Highlight color popover
+   ============================================================ */
+.hl-pop{ padding: 12px; width: 196px; }
+.hl-label{ font-size:.66rem; font-weight:650; letter-spacing:.09em; text-transform:uppercase; color:var(--ink-3); margin: 2px 2px 8px; }
+.hl-swatches{ display:flex; gap:8px; justify-content:space-between; margin-bottom: 12px; }
+.hl-swatch{
+  width:26px; height:26px; border-radius: 9px;
+  border: 2px solid transparent;
+  box-shadow: inset 0 1px 2px rgba(255,255,255,.5), 0 1px 4px rgba(0,0,0,.12);
+  transition: transform var(--t-fast);
+}
+.hl-swatch:hover{ transform: scale(1.15); }
+.hl-wheel-wrap{ display:flex; justify-content:center; padding: 4px 0 2px; }
+.hl-wheel{
+  width: 124px; height: 124px; border-radius: 50%;
+  background: conic-gradient(
+    hsl(0 85% 75%), hsl(40 85% 75%), hsl(80 85% 75%), hsl(120 85% 75%),
+    hsl(160 85% 75%), hsl(200 85% 75%), hsl(240 85% 75%), hsl(280 85% 75%),
+    hsl(320 85% 75%), hsl(360 85% 75%));
+  -webkit-mask: radial-gradient(circle, transparent 34px, #000 35px);
+  mask: radial-gradient(circle, transparent 34px, #000 35px);
+  cursor: crosshair;
+  border: 1px solid var(--border);
+  transition: transform var(--t-fast);
+}
+.hl-wheel:hover{ transform: scale(1.03); }
+
+
+/* suppress entrance animations on in-page re-renders (same route) */
+.content-inner.no-anim .card,
+.content-inner.no-anim .list-row.anim{ animation: none; }
+
+/* aurora flare — plays when the exclusive Crimson accent is chosen */
+@keyframes flare{
+  0%{ filter: blur(40px) brightness(1) saturate(1); }
+  35%{ filter: blur(32px) brightness(1.5) saturate(1.35); transform: scale(1.07); }
+  100%{ filter: blur(40px) brightness(1) saturate(1); }
+}
+.aurora.flare{
+  animation: flare 1.15s var(--ease), drift 60s var(--ease) infinite alternate;
+}
+
+/* ---------- Crimson mode — the whole room turns red ----------
+   The aurora gets hotter and more saturated, the base canvas is
+   tinted toward wine, and a slow ember glow breathes underneath. */
+[data-accent="crimson"][data-theme="light"]{ --bg-base: #f6ecee; }
+[data-accent="crimson"][data-theme="dark"]{ --bg-base: #150a10; }
+[data-accent="crimson"] .aurora{ filter: blur(38px) saturate(1.35) brightness(1.04); }
+[data-accent="crimson"] .aurora::after{
+  content:''; position:absolute; inset:0;
+  background:
+    radial-gradient(55% 60% at 50% 108%, rgba(220,20,60,.30), transparent 70%),
+    radial-gradient(34% 38% at 22% -6%, rgba(255,70,90,.20), transparent 70%),
+    radial-gradient(28% 32% at 88% 50%, rgba(255,110,70,.16), transparent 70%);
+  animation: emberPulse 7s ease-in-out infinite alternate;
+}
+@keyframes emberPulse{
+  from{ opacity:.5; transform: translateY(.5%) scale(1); }
+  to{ opacity:1; transform: translateY(-1.5%) scale(1.03); }
+}
+[data-accent="crimson"][data-theme="dark"] .editor{ caret-color: #ff5d75; }
+
+.swatch[data-accent="crimson"]{ position: relative; }
+.swatch[data-accent="crimson"]::after{
+  content:''; position:absolute; inset:-4px; border-radius:50%;
+  background: conic-gradient(rgba(220,20,60,.0), rgba(255,90,70,.75), rgba(220,20,60,.0));
+  z-index:-1; opacity:0; transition: opacity var(--t-fast);
+  animation: spin 2.6s linear infinite;
+}
+@keyframes spin{ to{ transform: rotate(360deg); } }
+.swatch[data-accent="crimson"]:hover::after,
+.swatch[data-accent="crimson"][aria-pressed="true"]::after{ opacity:1; }
+
+/* save button dirty dot */
+.save-btn{ position: relative; display:inline-flex; align-items:center; gap:7px; padding: 0 12px; height:30px; border-radius:8px; font-size:.78rem; font-weight:580; color:var(--ink-2); transition: background var(--t-fast), color var(--t-fast); }
+.save-btn:hover{ background: var(--hover); color: var(--ink); }
+.save-btn .dirty-dot{ width:7px; height:7px; border-radius:50%; background: rgb(var(--accent)); opacity:0; transform: scale(.4); transition: opacity var(--t-fast), transform var(--t-fast) var(--ease); }
+.save-btn.dirty .dirty-dot{ opacity:1; transform: scale(1); }
+
+/* highlight split-button */
+.hl-caret{ width:16px; height:30px; display:grid; place-items:center; border-radius:8px; color:var(--ink-3); margin-left:-2px; }
+.hl-caret:hover{ background: var(--hover); color: var(--ink); }
+.hl-caret svg{ width:10px; height:10px; }
+#hlSwatch{ border-radius:4px; padding:1px 4px; transition: background var(--t-fast); }
+
+/* ---------- Note emoji icons ---------- */
+.note-emoji{
+  width:16px; height:16px; flex-shrink:0;
+  display:inline-flex; align-items:center; justify-content:center;
+  font-size:13.5px; line-height:1; font-style:normal;
+}
+.card h3 .note-emoji{ width:15px; height:15px; font-size:13px; }
+.emoji-pop{ width: 256px; padding: 10px; }
+.emoji-grid{ display:grid; grid-template-columns: repeat(7, 1fr); gap:2px; }
+.emoji-grid button{
+  height:31px; border-radius:8px; font-size:17px; line-height:1;
+  display:grid; place-items:center;
+  transition: background var(--t-fast), transform var(--t-fast);
+}
+.emoji-grid button:hover{ background: var(--hover); transform: scale(1.14); }
+.emoji-grid button.sel{ background: var(--active); }
+
+/* PDF export dialog */
+.mini-dialog{ width: min(380px, 92vw); padding: 22px; }
+.mini-dialog h3{ font-family: var(--font-display); font-weight:550; font-size:1.25rem; margin-bottom: 6px; }
+.mini-dialog p{ font-size:.84rem; color: var(--ink-2); margin-bottom: 18px; line-height:1.55; }
+.mini-dialog .row{ display:flex; gap:10px; flex-wrap:wrap; }
+
+/* ============================================================
+   Print / PDF export
+   ============================================================ */
+#printArea{ display:none; }
+@media print{
+  body{ height:auto; overflow:visible; background:#fff; }
+  .aurora, .app, .overlay, .toast, .float-menu{ display:none !important; }
+  #printArea{ display:block; padding: 28px 8px; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  #printArea h1.pr-title{ font-family: var(--font-display); font-size: 2.1rem; font-weight:550; letter-spacing:-0.015em; margin-bottom: 4px; }
+  #printArea .pr-meta{ font-size:.78rem; color:#777; margin-bottom: 22px; }
+  #printArea .pr-body{ font-size: 1rem; line-height: 1.7; }
+  /* plain mode: clean black-on-white */
+  #printArea.plain{ color:#111; }
+  #printArea.plain .pr-body blockquote{ border-left:3px solid #bbb; color:#444; }
+  #printArea.plain .pr-body pre, #printArea.plain .pr-body code{ background:#f3f3f3; border:1px solid #ddd; }
+  #printArea.plain .pr-body .callout{ background:#f5f5f5; border:1px solid #ddd; }
+  /* themed mode: carries the glass / aurora identity onto paper */
+  #printArea.themed{
+    color: var(--ink);
+    border-radius: 18px;
+    border: 1px solid rgba(120,140,200,.25);
+    padding: 34px 36px;
+    background:
+      radial-gradient(60% 50% at 12% 0%, var(--aur-1), transparent 70%),
+      radial-gradient(50% 45% at 95% 8%, var(--aur-2), transparent 70%),
+      radial-gradient(55% 50% at 90% 100%, var(--aur-3), transparent 70%),
+      var(--bg-base);
+  }
+  #printArea.themed h1.pr-title{ color: var(--ink); }
+  #printArea.themed .pr-meta{ color: var(--ink-2); }
+}
+
+@media (prefers-reduced-motion: reduce){
+  *{ animation-duration: 1ms !important; transition-duration: 1ms !important; }
+}
+
+/* ---------- Fluid layout breakpoints ----------
+   The shell adapts to whatever space it's given: the details panel
+   becomes a floating drawer first, then the sidebar, then the topbar
+   compacts. All reuse the existing open/close transitions.            */
+@media (max-width: 1160px){
+  .rpanel{
+    position: fixed; right: 10px; top: 10px; bottom: 10px; z-index: 45;
+    width: min(300px, 80vw); box-shadow: var(--shadow-pop);
+  }
+  .app[data-rpanel="closed"] .rpanel{ margin: 0; }
+}
+@media (max-width: 900px){
+  .sidebar{
+    position: fixed; left: 10px; top: 10px; bottom: 10px; z-index: 45;
+    box-shadow: var(--shadow-pop);
+  }
+  .app[data-sidebar="closed"] .sidebar{ margin: 0; }
+}
+@media (max-width: 640px){
+  .search-pill span, .search-pill kbd{ display:none; }
+  .search-pill{ padding: 7px 9px; }
+  .tb-hint{ display:none; }
+}
+</style>
+</head>
+<body>
+<div class="aurora" aria-hidden="true"></div>
+
+<div class="app" id="app" data-sidebar="open" data-rpanel="open" data-focus="off">
+
+  <!-- ============ SIDEBAR ============ -->
+  <nav class="sidebar glass" id="sidebar" aria-label="Workspace navigation">
+    <div class="sb-head">
+      <div class="logo" aria-hidden="true">
+        <svg viewBox="0 0 24 24"><text x="12" y="17.3" text-anchor="middle">G</text></svg>
+      </div>
+      <div class="sb-title">Glass</div>
+      <button class="icon-btn" id="newNoteBtn" title="New note (N)" aria-label="Create new note">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+      </button>
+    </div>
+    <div class="sb-scroll">
+      <div class="sb-section" id="workspaceNav"></div>
+      <div class="sb-section">
+        <div class="sb-label"><span>Notes</span><button id="addNoteSb" aria-label="Add note" title="Add note">+</button></div>
+        <div id="notesNav"></div>
+      </div>
+      <div class="sb-section">
+        <div class="sb-label"><span>Projects</span><button id="addProjSb" aria-label="Add project" title="Add project">+</button></div>
+        <div id="projNav"></div>
+      </div>
+    </div>
+    <div class="sb-foot">
+      <button class="nav-item" data-nav="settings" id="settingsBtn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9c.61.26 1.05.86 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        <span class="truncate">Settings</span>
+      </button>
+    </div>
+  </nav>
+
+  <!-- ============ MAIN ============ -->
+  <div class="main-col">
+    <header class="topbar glass">
+      <button class="icon-btn" id="toggleSidebar" aria-label="Toggle sidebar" title="Toggle sidebar (Ctrl+\)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M9.5 4v16"/></svg>
+      </button>
+      <div class="crumbs" id="crumbs"></div>
+      <button class="search-pill" id="openPalette" aria-label="Open command palette">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+        <span>Search or jump to…</span><kbd id="kbdHint">Ctrl K</kbd>
+      </button>
+      <button class="icon-btn theme-toggle" id="themeToggle" aria-label="Toggle light and dark theme" title="Toggle theme">
+        <svg class="sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="4.5"/><path d="M12 2v2.5M12 19.5V22M4.9 4.9l1.8 1.8M17.3 17.3l1.8 1.8M2 12h2.5M19.5 12H22M4.9 19.1l1.8-1.8M17.3 6.7l1.8-1.8"/></svg>
+        <svg class="moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
+      </button>
+      <button class="icon-btn" id="focusBtn" aria-label="Toggle focus mode" title="Focus mode">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M8 3H5a2 2 0 0 0-2 2v3M16 3h3a2 2 0 0 1 2 2v3M8 21H5a2 2 0 0 1-2-2v-3M16 21h3a2 2 0 0 0 2-2v-3"/></svg>
+      </button>
+      <button class="icon-btn" id="toggleRpanel" aria-label="Toggle details panel" title="Toggle details panel">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M14.5 4v16"/></svg>
+      </button>
+    </header>
+
+    <main class="content glass" id="content" tabindex="-1">
+      <div class="content-inner" id="view" aria-live="polite"></div>
+      <div id="tbDock"></div>
+    </main>
+  </div>
+
+  <!-- ============ RIGHT PANEL ============ -->
+  <aside class="rpanel glass" id="rpanel" aria-label="Note details"></aside>
+</div>
+
+<!-- command palette -->
+<div class="overlay" id="paletteOverlay" role="dialog" aria-modal="true" aria-label="Command palette">
+  <div class="palette glass-strong">
+    <input class="pal-input" id="palInput" type="text" placeholder="Search notes, projects, and commands…" autocomplete="off" aria-label="Search">
+    <div class="pal-list" id="palList" role="listbox"></div>
+  </div>
+</div>
+
+<!-- slash menu -->
+<div class="float-menu glass-strong" id="slashMenu" hidden role="menu" aria-label="Insert block"></div>
+
+<div class="toast glass-strong" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+/* ============================================================
+   GLASS — application logic
+   ============================================================ */
+const $ = (s, el=document) => el.querySelector(s);
+const $$ = (s, el=document) => [...el.querySelectorAll(s)];
+const uid = () => Math.random().toString(36).slice(2, 10);
+const now = () => Date.now();
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+const ACCENTS = {
+  glacier: '94 139 255', sage: '63 154 121', lilac: '147 113 235',
+  amber: '214 138 49', crimson: '220 20 60', slate: '100 116 150'
+};
+/* per-accent aurora palettes — same idea, hue shifted toward the accent */
+const AURORAS = {
+  glacier: {
+    light: ['rgba(173,196,255,.55)','rgba(255,214,224,.42)','rgba(196,240,222,.45)','rgba(221,208,255,.40)'],
+    dark:  ['rgba(70,95,190,.32)','rgba(150,80,140,.20)','rgba(50,130,120,.20)','rgba(95,75,170,.24)']
+  },
+  sage: {
+    light: ['rgba(168,228,196,.55)','rgba(214,242,205,.45)','rgba(178,232,224,.45)','rgba(200,236,186,.40)'],
+    dark:  ['rgba(45,140,100,.30)','rgba(60,150,140,.20)','rgba(40,120,80,.22)','rgba(80,160,110,.20)']
+  },
+  lilac: {
+    light: ['rgba(208,186,255,.55)','rgba(238,206,250,.44)','rgba(196,200,255,.45)','rgba(228,192,244,.40)'],
+    dark:  ['rgba(120,80,200,.32)','rgba(160,70,170,.20)','rgba(90,80,190,.22)','rgba(140,90,200,.22)']
+  },
+  amber: {
+    light: ['rgba(255,212,160,.55)','rgba(255,232,182,.45)','rgba(252,206,170,.45)','rgba(255,222,150,.40)'],
+    dark:  ['rgba(190,120,40,.30)','rgba(200,140,60,.20)','rgba(170,95,40,.22)','rgba(210,150,50,.20)']
+  },
+  crimson: { /* the exclusive one — unapologetically red */
+    light: ['rgba(255,105,125,.62)','rgba(255,145,115,.50)','rgba(244,65,110,.44)','rgba(255,165,155,.48)'],
+    dark:  ['rgba(225,35,70,.48)','rgba(185,20,90,.34)','rgba(255,85,55,.26)','rgba(140,10,45,.42)']
+  },
+  slate: {
+    light: ['rgba(190,202,226,.55)','rgba(214,222,238,.45)','rgba(198,212,228,.45)','rgba(206,214,234,.40)'],
+    dark:  ['rgba(85,100,140,.30)','rgba(100,115,150,.20)','rgba(70,85,125,.22)','rgba(110,125,160,.20)']
+  }
+};
+const TAG_PRESETS = ['important', 'idea', 'to-do', 'work', 'personal', 'reference', 'urgent', 'someday'];
+const ACCENT_HEX = { glacier:'#5e8bff', sage:'#3f9a79', lilac:'#9371eb', amber:'#d68a31', crimson:'#dc143c', slate:'#647496' };
+
+const NOTE_EMOJI = ['📝','📓','📚','✏️','🖋️','📌','💡','⭐','🔥','🚀','🎯','🧠','💭','🗂️','🧪','🔬','🎨','📊','📅','🗺️','🌱','🌙','☀️','⚡','🧩','🔖','💼','🏠','❤️','🎵','📷','✈️','🛠️','🔒','💰','🏆','🌊','🍀','🎮','⏳','👋','⌨️'];
+
+/* the reference note's content — kept in one place so it can be refreshed */
+const SHORTCUTS_HTML = `<table><tr><th>Action</th><th>Shortcut</th></tr><tr><td>Command palette</td><td><code>Ctrl/Cmd + K</code></td></tr><tr><td>New note</td><td><code>N</code></td></tr><tr><td>Save note</td><td><code>Ctrl/Cmd + S</code></td></tr><tr><td>Toggle sidebar</td><td><code>Ctrl/Cmd + \\</code></td></tr><tr><td>Focus mode (in a note)</td><td><code>Ctrl/Cmd + .</code></td></tr><tr><td>Bold / Italic / Underline</td><td><code>Ctrl/Cmd + B / I / U</code></td></tr><tr><td>Insert a block</td><td><code>/</code> in the editor</td></tr><tr><td>Jump from title into the note</td><td><code>Tab</code> or <code>Enter</code></td></tr><tr><td>Indent / outdent in the editor</td><td><code>Tab</code> / <code>Shift + Tab</code></td></tr><tr><td>Close menu, palette, or dialog</td><td><code>Esc</code></td></tr></table>`;
+
+/* ---------- state ---------- */
+let state = null;
+
+function defaultState(){
+  const t = now();
+  const welcomeId = uid(), shortcutId = uid(), projId = uid(), projNoteId = uid();
+  return {
+    settings: {
+      theme: matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light',
+      accent: 'glacier', blur: 22, radius: 14, fontScale: 1, density: 1,
+      contrast: false, motion: 'auto', defaultPage: 'home',
+      hlColor: 'rgba(255, 222, 120, .55)',
+      toolbarPin: false /* the formatting toolbar starts unpinned */
+    },
+    ui: { sidebar: true, rpanel: true },
+    notes: [
+      { id: welcomeId, title: 'Welcome to Glass', project: null, tags: ['getting-started'], icon: '👋',
+        pinned: true, favorite: true, archived: false, created: t, modified: t,
+        content: `<p>Glass is a quiet place to think. Everything you write lives behind frosted panels, and everything you need is a keystroke away.</p><h2>The essentials</h2><ul class="checklist"><li class="done">Open the command palette with <code>Ctrl / Cmd + K</code></li><li>Type <code>/</code> in any note to insert blocks</li><li>Press <code>N</code> anywhere to start a new note</li><li>Try the theme toggle in the top bar</li></ul><blockquote>Write with the door closed, rewrite with the door open.</blockquote><p>Use the panel on the right to tag, pin, and favorite this note — or archive it once you've found your footing.</p>` },
+      { id: shortcutId, title: 'Keyboard shortcuts', project: null, tags: ['reference'], icon: '⌨️',
+        pinned: false, favorite: false, archived: false, created: t-86400000, modified: t-86400000,
+        content: SHORTCUTS_HTML },
+      { id: projNoteId, title: 'Field notes — glass and light', project: projId, tags: ['research'], icon: null,
+        pinned: false, favorite: false, archived: false, created: t-172800000, modified: t-7200000,
+        content: `<p>Frosted glass works because it suggests depth without demanding attention. The content stays sharp; the world behind it softens.</p><div class="callout">Blur is a budget. Spend it where focus should fall.</div><h3>Observations</h3><ul><li>Transparency reads as lightness, not emptiness</li><li>One accent color is enough when light does the rest</li><li>Shadows should feel like weather, not weight</li></ul>`}
+    ],
+    projects: [
+      { id: projId, title: 'Glass design language', description: 'A working study of frosted-glass interfaces — what makes them feel calm instead of cold.',
+        status: 'active', tags: ['design'], created: t-172800000,
+        tasks: [
+          { id: uid(), text: 'Collect references from nature — frost, fog, sea glass', done: true },
+          { id: uid(), text: 'Define the blur and transparency scale', done: true },
+          { id: uid(), text: 'Test panels against busy backgrounds', done: false },
+          { id: uid(), text: 'Write the accessibility contrast notes', done: false }
+        ] }
+    ],
+    recent: [welcomeId],
+    searchHistory: []
+  };
+}
+
+/* ---------- persistence (window.storage → localStorage → memory) ---------- */
+let saveTimer = null;
+async function loadState(){
+  try{
+    if (window.storage){
+      const r = await window.storage.get('glass-state-v1');
+      if (r && r.value){ state = JSON.parse(r.value); return; }
+    }
+  }catch(e){ /* unavailable — fall through */ }
+  try{
+    const raw = localStorage.getItem('glass-state-v1');
+    if (raw){ state = JSON.parse(raw); return; }
+  }catch(e){ /* blocked or corrupt — fall through */ }
+  state = defaultState();
+}
+function save(){
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(async () => {
+    const json = JSON.stringify(state);
+    try{ if (window.storage) await window.storage.set('glass-state-v1', json); }
+    catch(e){ /* ignore */ }
+    try{ localStorage.setItem('glass-state-v1', json); }
+    catch(e){ /* in-memory only */ }
+  }, 400);
+}
+
+/* ---------- routing ---------- */
+let route = { page: 'home', id: null };
+function go(page, id=null){
+  /* focus mode is a note-writing tool — leaving the note ends it */
+  if (page !== 'note'){
+    const app = $('#app');
+    if (app.dataset.focus === 'on'){ app.dataset.focus = 'off'; app.classList.remove('peek'); }
+  }
+  route = { page, id };
+  if (page === 'note' && id){
+    state.recent = [id, ...state.recent.filter(x => x !== id)].slice(0, 12);
+    save();
+  }
+  render();
+  $('#content').scrollTop = 0;
+}
+
+/* ---------- helpers ---------- */
+const noteById = id => state.notes.find(n => n.id === id);
+const projById = id => state.projects.find(p => p.id === id);
+const fmtDate = ts => new Date(ts).toLocaleDateString(undefined, { month:'short', day:'numeric', year:'numeric' });
+const fmtTime = ts => {
+  const d = now() - ts;
+  if (d < 60000) return 'just now';
+  if (d < 3600000) return Math.floor(d/60000) + 'm ago';
+  if (d < 86400000) return Math.floor(d/3600000) + 'h ago';
+  if (d < 604800000) return Math.floor(d/86400000) + 'd ago';
+  return fmtDate(ts);
+};
+const textOf = html => { const d = document.createElement('div'); d.innerHTML = html; return d.textContent || ''; };
+/* preview text with block boundaries preserved ("Heading · body…") */
+const previewOf = html => {
+  const d = document.createElement('div'); d.innerHTML = html;
+  const parts = [];
+  d.querySelectorAll('h1,h2,h3,p,li,blockquote,pre,td,th,div').forEach(el => {
+    if (el.querySelector('h1,h2,h3,p,li,blockquote,pre')) return; /* leaf blocks only */
+    const t = el.textContent.trim(); if (t) parts.push(t);
+  });
+  if (!parts.length) return d.textContent.trim();
+  return parts.join('  ·  ');
+};
+const wordCount = n => (textOf(n.content).trim().match(/\S+/g) || []).length;
+
+function toast(msg){
+  const t = $('#toast'); t.textContent = msg; t.classList.add('show');
+  clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+function applySettings(){
+  const s = state.settings, r = document.documentElement;
+  r.dataset.theme = s.theme;
+  r.dataset.accent = s.accent; /* lets CSS react to Crimson mode */
+  r.dataset.contrast = s.contrast ? 'high' : 'normal';
+  r.dataset.motion = s.motion === 'reduced' ? 'reduced' : 'auto';
+  r.style.setProperty('--accent', ACCENTS[s.accent] || ACCENTS.glacier);
+  const aur = (AURORAS[s.accent] || AURORAS.glacier)[s.theme] || AURORAS.glacier.light;
+  aur.forEach((c, i) => r.style.setProperty('--aur-' + (i + 1), c));
+  r.style.setProperty('--blur', s.blur + 'px');
+  r.style.setProperty('--radius', s.radius + 'px');
+  r.style.setProperty('--font-scale', s.fontScale);
+  r.style.setProperty('--density', s.density);
+  const mac = /Mac/i.test(navigator.platform);
+  $('#kbdHint').textContent = mac ? '⌘ K' : 'Ctrl K';
+}
+
+/* ---------- icons ---------- */
+const ICO = {
+  home: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5L12 3l9 7.5"/><path d="M5 9.5V20a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V9.5"/></svg>',
+  note: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6"/></svg>',
+  star: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M12 3l2.7 5.8 6.3.8-4.6 4.4 1.2 6.2L12 17.2 6.4 20.2l1.2-6.2L3 9.6l6.3-.8z"/></svg>',
+  starFill: '<svg viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M12 3l2.7 5.8 6.3.8-4.6 4.4 1.2 6.2L12 17.2 6.4 20.2l1.2-6.2L3 9.6l6.3-.8z"/></svg>',
+  clock: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg>',
+  archive: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="5" rx="1.5"/><path d="M5 9v9a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V9M10 13.5h4"/></svg>',
+  folder: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2.5h8a2 2 0 0 1 2 2V18a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>',
+  pin: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 17v5M8 6.5c0 3-3 4-3 6.5h14c0-2.5-3-3.5-3-6.5V4H8z"/></svg>',
+  check: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>',
+  trash: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M9 7V4.5A1.5 1.5 0 0 1 10.5 3h3A1.5 1.5 0 0 1 15 4.5V7M6.5 7l.8 12a2 2 0 0 0 2 1.9h5.4a2 2 0 0 0 2-1.9l.8-12"/></svg>',
+  search: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>',
+  plus: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>'
+};
+
+/* ============================================================
+   Sidebar rendering
+   ============================================================ */
+function renderSidebar(){
+  const ws = [
+    ['home', 'Home', ICO.home],
+    ['favorites', 'Favorites', ICO.star],
+    ['recent', 'Recent', ICO.clock],
+    ['archive', 'Archive', ICO.archive],
+  ];
+  $('#workspaceNav').innerHTML = ws.map(([k, label, ico]) =>
+    `<button class="nav-item" data-nav="${k}" aria-current="${route.page === k}">${ico}<span class="truncate">${label}</span></button>`
+  ).join('');
+
+  const notes = state.notes.filter(n => !n.archived)
+    .sort((a,b) => (b.pinned - a.pinned) || (b.modified - a.modified));
+  $('#notesNav').innerHTML = notes.length ? notes.map(n => `
+    <button class="nav-item" data-note="${n.id}" aria-current="${route.page === 'note' && route.id === n.id}">
+      ${noteIco(n)}<span class="truncate">${esc(n.title) || 'Untitled'}</span>
+      <span class="meta-ico">${n.pinned ? ICO.pin : ''}${n.favorite ? ICO.starFill : ''}</span>
+    </button>`).join('')
+    : `<div class="empty-hint">No notes yet — press N to begin.</div>`;
+
+  $('#projNav').innerHTML = state.projects.filter(p => p.status !== 'archived').map(p => `
+    <button class="nav-item" data-proj="${p.id}" aria-current="${route.page === 'project' && route.id === p.id}">
+      <span class="dot" style="background:${ACCENT_HEX[state.settings.accent]}"></span>
+      <span class="truncate">${esc(p.title)}</span>
+    </button>`).join('') || `<div class="empty-hint">No projects yet.</div>`;
+}
+
+/* ---------- crumbs ---------- */
+function renderCrumbs(){
+  const c = $('#crumbs');
+  if (route.page === 'note'){
+    const n = noteById(route.id);
+    const p = n && n.project ? projById(n.project) : null;
+    c.innerHTML = (p ? `<span>${esc(p.title)}</span><span aria-hidden="true">›</span>` : `<span>Notes</span><span aria-hidden="true">›</span>`) + `<b>${esc(n ? n.title || 'Untitled' : '')}</b>`;
+  } else if (route.page === 'project'){
+    const p = projById(route.id);
+    c.innerHTML = `<span>Projects</span><span aria-hidden="true">›</span><b>${esc(p ? p.title : '')}</b>`;
+  } else {
+    const names = { home:'Home', favorites:'Favorites', recent:'Recent', archive:'Archive', settings:'Settings' };
+    c.innerHTML = `<b>${names[route.page] || ''}</b>`;
+  }
+}
+
+/* ============================================================
+   Views
+   ============================================================ */
+function render(){
+  applySettings();
+  renderSidebar();
+  renderCrumbs();
+  const v = $('#view');
+  v.onclick = null;
+  const routeKey = route.page + ':' + (route.id || '');
+  if (render._last !== routeKey){
+    v.classList.remove('no-anim');
+    v.classList.remove('anim'); void v.offsetWidth; v.classList.add('anim');
+    render._last = routeKey;
+  } else {
+    v.classList.add('no-anim'); /* same page: keep cards still */
+  }
+  /* focus mode is only offered inside a note */
+  $('#focusBtn').style.display = route.page === 'note' ? '' : 'none';
+  if (route.page !== 'note') clearToolbarDock();
+  if (route.page === 'home') renderHome(v);
+  else if (route.page === 'note') renderNote(v);
+  else if (route.page === 'project') renderProject(v);
+  else if (route.page === 'settings') renderSettings(v);
+  else renderCollection(v, route.page);
+  renderRpanel();
+}
+
+/* note icon: chosen emoji when set, otherwise the default file glyph.
+   Shown in the sidebar, Home, and collections — never on the note page. */
+const noteIco = n => n.icon ? `<span class="note-emoji">${esc(n.icon)}</span>` : ICO.note;
+
+function noteCard(n, i = 0){
+  const preview = previewOf(n.content).slice(0, 160);
+  return `<button class="card glass" style="--i:${i}" data-open-note="${n.id}">
+    <h3>${n.icon ? noteIco(n) : (n.favorite ? ICO.starFill : ICO.note)}<span>${esc(n.title) || 'Untitled'}</span></h3>
+    <p>${esc(preview) || 'Empty note'}</p>
+    <div class="card-foot">${n.pinned ? 'Pinned · ' : ''}${fmtTime(n.modified)} · ${wordCount(n)} words</div>
+  </button>`;
+}
+function projCard(p, i = 0){
+  const notes = state.notes.filter(n => n.project === p.id && !n.archived).length;
+  const done = p.tasks.filter(t => t.done).length;
+  return `<button class="card glass" style="--i:${i}" data-open-proj="${p.id}">
+    <h3>${ICO.folder}<span>${esc(p.title)}</span></h3>
+    <p>${esc(p.description) || 'No description yet.'}</p>
+    <div class="card-foot"><span class="status-chip s-${p.status}">${p.status[0].toUpperCase()+p.status.slice(1)}</span><span>${notes} note${notes!==1?'s':''} · ${done}/${p.tasks.length} tasks</span></div>
+  </button>`;
+}
+
+/* ---------- Home ---------- */
+function renderHome(v){
+  const h = new Date().getHours();
+  const greet = h < 5 ? 'Still up' : h < 12 ? 'Good morning' : h < 18 ? 'Good afternoon' : 'Good evening';
+  const pinned = state.notes.filter(n => n.pinned && !n.archived);
+  const recent = state.recent.map(noteById).filter(n => n && !n.archived).slice(0, 6);
+  const projects = state.projects.filter(p => p.status !== 'archived');
+
+  v.innerHTML = `
+    <h1 class="greet">${greet}.<br>What's on your <em>mind</em>?</h1>
+    <p class="greet-sub">Your thoughts, behind glass — clear when you need them, quiet when you don't.</p>
+    <div style="display:flex; gap:10px; flex-wrap:wrap;">
+      <button class="btn" id="homeNew">${ICO.plus} New note</button>
+      <button class="btn ghost" id="homeNewProj">${ICO.folder} New project</button>
+      <button class="btn ghost" id="homeSearch">${ICO.search} Search</button>
+    </div>
+
+    ${pinned.length ? `<div class="section-h"><h2>Pinned</h2></div><div class="grid">${pinned.map((n,i) => noteCard(n,i)).join('')}</div>` : ''}
+    ${projects.length ? `<div class="section-h"><h2>Projects</h2><button class="link-btn" id="homeNewProj2">New project</button></div><div class="grid">${projects.map((p,i) => projCard(p,i)).join('')}</div>` : ''}
+    ${recent.length ? `<div class="section-h"><h2>Recent</h2><button class="link-btn" data-go="recent">View all</button></div><div>${recent.map((n,i) => `
+      <button class="list-row anim" style="--i:${i}" data-open-note="${n.id}">${noteIco(n)}<b>${esc(n.title) || 'Untitled'}</b><span class="lr-time">${fmtTime(n.modified)}</span></button>`).join('')}</div>` : ''}
+  `;
+  $('#homeNew')?.addEventListener('click', createNote);
+  $('#homeNewProj')?.addEventListener('click', createProject);
+  $('#homeNewProj2')?.addEventListener('click', createProject);
+  $('#homeSearch')?.addEventListener('click', openPalette);
+}
+
+/* ---------- Collections (favorites / recent / archive) ---------- */
+function renderCollection(v, kind){
+  let notes, title, sub;
+  if (kind === 'favorites'){
+    notes = state.notes.filter(n => n.favorite && !n.archived);
+    title = 'Favorites'; sub = 'Notes you starred to keep close.';
+  } else if (kind === 'recent'){
+    notes = state.recent.map(noteById).filter(n => n && !n.archived);
+    title = 'Recent'; sub = 'Picking up where you left off.';
+  } else {
+    notes = state.notes.filter(n => n.archived);
+    title = 'Archive'; sub = 'Out of the way, never out of reach.';
+  }
+  v.innerHTML = `<h1 class="page-h">${title}</h1><p class="page-sub">${sub}</p>` +
+    (notes.length ? `<div class="grid">${notes.map((n,i) => noteCard(n,i)).join('')}</div>`
+      : `<div class="set-card glass" style="text-align:center; color:var(--ink-2); font-size:.9rem;">Nothing here yet. ${kind==='archive' ? 'Archive a note from its details panel.' : kind==='favorites' ? 'Star a note to add it.' : 'Open a note to start the trail.'}</div>`);
+}
+
+/* ---------- Note editor ---------- */
+function renderNote(v){
+  const n = noteById(route.id);
+  if (!n){ go('home'); return; }
+  const proj = n.project ? projById(n.project) : null;
+  v.innerHTML = `
+    <input class="note-title" id="noteTitle" value="${esc(n.title)}" placeholder="Untitled" aria-label="Note title" spellcheck="false">
+    <div class="note-sub">
+      ${n.pinned ? `<span class="pin-flag">${ICO.pin} Pinned</span>` : ''}
+      <span id="editedAt">Saved ${fmtTime(n.modified)}</span>
+      <span id="liveCount">${wordCount(n)} words</span>
+      ${proj ? `<span>in ${esc(proj.title)}</span>` : ''}
+    </div>
+    <div class="editor" id="editor" contenteditable="true" data-placeholder="Start writing, or type / to insert a block…" spellcheck="true" role="textbox" aria-multiline="true" aria-label="Note content">${n.content}</div>
+  `;
+  renderToolbarDock();
+  wireEditor(n);
+}
+
+/* ---------- bottom toolbar dock ---------- */
+let tbLatch = false, tbCloseTimer = null;
+function tbSync(){
+  const dock = $('#tbDock');
+  const open = state.settings.toolbarPin || tbLatch || dock._hover || dock._focus;
+  dock.classList.toggle('open', !!open);
+  $('#tbHandle')?.setAttribute('aria-expanded', String(!!open));
+}
+function renderToolbarDock(){
+  const dock = $('#tbDock');
+  tbLatch = false; dock._hover = false; dock._focus = false;
+  dock.classList.add('has-tb');
+  dock.innerHTML = `
+    <div class="tb-wrap">
+      <div class="toolbar" role="toolbar" aria-label="Text formatting">
+        <button class="tb-btn" data-cmd="bold" title="Bold (Ctrl+B)" aria-label="Bold"><b>B</b></button>
+        <button class="tb-btn" data-cmd="italic" title="Italic (Ctrl+I)" aria-label="Italic"><i style="font-family:var(--font-display)">I</i></button>
+        <button class="tb-btn" data-cmd="underline" title="Underline (Ctrl+U)" aria-label="Underline"><u>U</u></button>
+        <button class="tb-btn" data-cmd="strikeThrough" title="Strikethrough" aria-label="Strikethrough"><s>S</s></button>
+        <button class="tb-btn" data-cmd="hilite" title="Highlight with current color" aria-label="Highlight"><span id="hlSwatch" style="background:${state.settings.hlColor}">H</span></button>
+        <button class="hl-caret" id="hlMore" title="Choose highlight color" aria-label="Choose highlight color" aria-haspopup="menu">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg></button>
+        <div class="tb-sep"></div>
+        <button class="tb-btn" data-block="h1" title="Heading 1" aria-label="Heading 1" style="font-family:var(--font-display); font-weight:600">H₁</button>
+        <button class="tb-btn" data-block="h2" title="Heading 2" aria-label="Heading 2" style="font-family:var(--font-display); font-weight:600">H₂</button>
+        <button class="tb-btn" data-cmd="insertUnorderedList" title="Bulleted list" aria-label="Bulleted list">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 6h11M9 12h11M9 18h11"/><circle cx="4.5" cy="6" r="1.4" fill="currentColor" stroke="none"/><circle cx="4.5" cy="12" r="1.4" fill="currentColor" stroke="none"/><circle cx="4.5" cy="18" r="1.4" fill="currentColor" stroke="none"/></svg></button>
+        <button class="tb-btn" data-cmd="insertOrderedList" title="Numbered list" aria-label="Numbered list">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M10 6h10M10 12h10M10 18h10M4 5l2-1v5M4 13.5c2-1.5 3 1 0 3.5h3"/></svg></button>
+        <div class="tb-sep"></div>
+        <span class="tb-hint">Type <code style="font-family:var(--font-mono)">/</code> for blocks</span>
+        <div class="tb-sep"></div>
+        <button class="save-btn" id="saveNoteBtn" title="Save (Ctrl+S)" aria-label="Save note">
+          <span class="dirty-dot" aria-hidden="true"></span>Save</button>
+        <button class="tb-btn tb-pin" id="tbPin" title="${state.settings.toolbarPin ? 'Unpin toolbar' : 'Keep toolbar open'}" aria-label="Keep toolbar open" aria-pressed="${state.settings.toolbarPin}">${ICO.pin}</button>
+      </div>
+      <button class="tb-handle" id="tbHandle" title="Formatting toolbar" aria-label="Toggle formatting toolbar" aria-expanded="false">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 14l6-5 6 5"/></svg>
+      </button>
+    </div>`;
+  $('#tbPin').addEventListener('click', () => {
+    state.settings.toolbarPin = !state.settings.toolbarPin; save();
+    const b = $('#tbPin');
+    b.setAttribute('aria-pressed', state.settings.toolbarPin);
+    b.title = state.settings.toolbarPin ? 'Unpin toolbar' : 'Keep toolbar open';
+    toast(state.settings.toolbarPin ? 'Toolbar pinned' : 'Toolbar unpinned');
+    tbSync();
+  });
+  $('#tbHandle').addEventListener('click', () => { tbLatch = !tbLatch; tbSync(); });
+  tbSync();
+}
+function clearToolbarDock(){
+  const dock = $('#tbDock');
+  dock.classList.remove('has-tb', 'open');
+  dock._hover = false; dock._focus = false; tbLatch = false;
+  dock.innerHTML = '';
+}
+
+/* ---------- Project page ---------- */
+function renderProject(v){
+  const p = projById(route.id);
+  if (!p){ go('home'); return; }
+  const notes = state.notes.filter(n => n.project === p.id && !n.archived);
+  const done = p.tasks.filter(t => t.done).length;
+  const pct = p.tasks.length ? Math.round(done / p.tasks.length * 100) : 0;
+  v.innerHTML = `
+    <div class="proj-cover" aria-hidden="true"></div>
+    <input class="note-title" id="projTitle" value="${esc(p.title)}" placeholder="Project name" aria-label="Project name" spellcheck="false">
+    <textarea class="proj-desc" id="projDesc" rows="2" placeholder="What is this project about?" aria-label="Project description">${esc(p.description)}</textarea>
+    <div class="meta-bar">
+      <select class="select" id="projStatus" aria-label="Project status">
+        ${['planned','active','paused','completed','archived'].map(s => `<option value="${s}" ${p.status===s?'selected':''}>${s[0].toUpperCase()+s.slice(1)}</option>`).join('')}
+      </select>
+      <div class="progress" id="projProg" role="progressbar" aria-valuenow="${pct}" aria-valuemin="0" aria-valuemax="100" aria-label="Task progress"><div id="projBar" style="width:${pct}%"></div></div>
+      <span id="projPct" style="font-size:.78rem; color:var(--ink-3); font-weight:550;">${pct}%</span>
+      <button class="icon-btn" id="projDel" title="Delete project" aria-label="Delete project" style="margin-left:auto; color:#c4554d;">${ICO.trash}</button>
+    </div>
+
+    <div class="section-h"><h2>Tasks</h2><span id="taskCount" style="font-size:.78rem; color:var(--ink-3)">${done} of ${p.tasks.length} done</span></div>
+    <div class="set-card glass" style="padding: 8px;">
+      <div id="taskList">${p.tasks.map(t => `
+        <div class="task-row" data-done="${t.done?1:0}" data-task="${t.id}">
+          <button class="task-check" aria-label="${t.done?'Mark incomplete':'Mark complete'}" aria-pressed="${t.done}">${ICO.check}</button>
+          <span>${esc(t.text)}</span>
+          <button class="row-x icon-btn" style="width:26px;height:26px;opacity:.45" data-del-task="${t.id}" aria-label="Delete task">${ICO.trash}</button>
+        </div>`).join('') || '<div class="empty-hint" style="padding:12px">No tasks yet.</div>'}
+      </div>
+      <div class="task-add" style="padding: 6px;">
+        <input id="taskInput" type="text" placeholder="Add a task and press Enter" aria-label="New task">
+      </div>
+    </div>
+
+    <div class="section-h"><h2>Notes</h2><button class="link-btn" id="projAddNote">New note in project</button></div>
+    ${notes.length ? `<div class="grid">${notes.map((n,i) => noteCard(n,i)).join('')}</div>`
+      : `<div class="empty-hint" style="padding:4px 2px">No notes in this project yet — create one, or assign an existing note from its details panel.</div>`}
+  `;
+  $('#projTitle').addEventListener('input', e => { p.title = e.target.value; save(); renderSidebar(); renderCrumbs(); });
+  $('#projDesc').addEventListener('input', e => { p.description = e.target.value; save(); });
+  $('#projStatus').addEventListener('change', e => { p.status = e.target.value; save(); render(); toast('Status updated'); });
+  /* targeted updates: ticking a task animates just that row +
+     the progress bar, instead of re-rendering the whole page */
+  const taskRowHTML = t => `
+    <div class="task-row" data-done="${t.done?1:0}" data-task="${t.id}">
+      <button class="task-check" aria-label="${t.done?'Mark incomplete':'Mark complete'}" aria-pressed="${t.done}">${ICO.check}</button>
+      <span>${esc(t.text)}</span>
+      <button class="row-x icon-btn" style="width:26px;height:26px;opacity:.45" data-del-task="${t.id}" aria-label="Delete task">${ICO.trash}</button>
+    </div>`;
+  function refreshProgress(){
+    const done = p.tasks.filter(t => t.done).length;
+    const pct2 = p.tasks.length ? Math.round(done / p.tasks.length * 100) : 0;
+    const bar = $('#projBar'), wrap = $('#projProg');
+    if (bar){ bar.style.width = pct2 + '%'; wrap.setAttribute('aria-valuenow', pct2); }
+    const pl = $('#projPct'); if (pl) pl.textContent = pct2 + '%';
+    const tc = $('#taskCount'); if (tc) tc.textContent = `${done} of ${p.tasks.length} done`;
+  }
+  $('#taskInput').addEventListener('keydown', e => {
+    if (e.key === 'Enter' && e.target.value.trim()){
+      const t = { id: uid(), text: e.target.value.trim(), done: false };
+      p.tasks.push(t); save();
+      $('#taskList .empty-hint')?.remove();
+      $('#taskList').insertAdjacentHTML('beforeend', taskRowHTML(t));
+      e.target.value = '';
+      refreshProgress();
+    }
+  });
+  $('#projAddNote').addEventListener('click', () => createNote(p.id));
+  $('#projDel').addEventListener('click', async () => {
+    const linked = state.notes.filter(n => n.project === p.id).length;
+    const ok = await glassConfirm({
+      title: 'Delete this project?',
+      message: `"${p.title}" will be removed${linked ? ` — its ${linked} note${linked !== 1 ? 's' : ''} will be kept and unassigned` : ''}. This can't be undone.`,
+      confirmText: 'Delete project'
+    });
+    if (!ok) return;
+    state.notes.forEach(n => { if (n.project === p.id) n.project = null; });
+    state.projects = state.projects.filter(x => x.id !== p.id);
+    save(); toast('Project deleted'); go('home');
+  });
+  $('#taskList').addEventListener('click', e => {
+    const del = e.target.closest('[data-del-task]');
+    if (del){
+      p.tasks = p.tasks.filter(t => t.id !== del.dataset.delTask); save();
+      del.closest('.task-row').remove(); refreshProgress(); return;
+    }
+    const row = e.target.closest('.task-row');
+    if (row && e.target.closest('.task-check')){
+      const t = p.tasks.find(t => t.id === row.dataset.task);
+      t.done = !t.done; save();
+      row.dataset.done = t.done ? 1 : 0;
+      const cb = row.querySelector('.task-check');
+      cb.setAttribute('aria-pressed', t.done);
+      cb.setAttribute('aria-label', t.done ? 'Mark incomplete' : 'Mark complete');
+      refreshProgress();
+    }
+  });
+}
+
+/* ============================================================
+   Editor wiring + slash menu
+   ============================================================ */
+function wireEditor(n){
+  const ed = $('#editor'), title = $('#noteTitle');
+  const syncEmpty = () => ed.classList.toggle('is-empty', !ed.textContent.trim() && !ed.querySelector('img,hr,table'));
+  syncEmpty();
+
+  title.addEventListener('input', () => {
+    n.title = title.value; save(); markDirty();
+    renderSidebar(); renderCrumbs();
+  });
+  /* Notion-style: Tab / Enter / ↓ jumps from the title straight into
+     the body — never into the toolbar */
+  title.addEventListener('keydown', e => {
+    if ((e.key === 'Tab' && !e.shiftKey) || e.key === 'Enter' || e.key === 'ArrowDown'){
+      e.preventDefault();
+      ed.focus();
+      const r = document.createRange();
+      r.selectNodeContents(ed); r.collapse(true);
+      const s = getSelection(); s.removeAllRanges(); s.addRange(r);
+    }
+  });
+  $('#saveNoteBtn').addEventListener('click', () => saveCurrentNote());
+
+  ed.addEventListener('input', () => {
+    syncEmpty();
+    n.content = ed.innerHTML; /* draft persists; "modified" waits for Save */
+    save();
+    markDirty();
+    updateLiveCounts(n);
+    maybeSlash();
+  });
+
+  /* toolbar */
+  $$('.tb-btn').forEach(b => b.addEventListener('mousedown', e => e.preventDefault()));
+  $$('[data-cmd]').forEach(b => b.addEventListener('click', () => {
+    if (b.dataset.cmd === 'hilite'){ applyHilite(state.settings.hlColor); return; }
+    document.execCommand(b.dataset.cmd);
+    ed.focus();
+  }));
+  const hlMore = $('#hlMore');
+  hlMore.addEventListener('mousedown', e => e.preventDefault());
+  hlMore.addEventListener('click', () => openHilitePop(hlMore));
+
+  /* ---------- highlight color popover ----------
+     • H button applies the current default color directly
+     • caret opens the picker; any pick becomes the new default
+     • the wheel keeps the picker open so you can fine-tune       */
+  const HL_PRESETS = [
+    { name:'Sun',      c:'rgba(255, 222, 120, .55)' },
+    { name:'Mint',     c:'rgba(150, 232, 196, .55)' },
+    { name:'Sky',      c:'rgba(150, 205, 255, .55)' },
+    { name:'Lavender', c:'rgba(205, 178, 255, .55)' },
+    { name:'Rose',     c:'rgba(255, 172, 200, .55)' },
+  ];
+  function applyHilite(color, { close = true } = {}){
+    state.settings.hlColor = color;
+    const sw = $('#hlSwatch'); if (sw) sw.style.background = color;
+    document.execCommand('styleWithCSS', false, true);
+    document.execCommand('hiliteColor', false, color);
+    if (close){ closeHilitePop(); ed.focus(); }
+    n.content = ed.innerHTML; save(); markDirty();
+  }
+  function closeHilitePop(){ const p = $('#hilitePop'); if (p){ p._cleanup?.(); p.remove(); } }
+  function openHilitePop(anchor){
+    closeHilitePop();
+    const r = anchor.getBoundingClientRect();
+    const pop = document.createElement('div');
+    pop.id = 'hilitePop';
+    pop.className = 'float-menu glass-strong hl-pop';
+    pop.setAttribute('role', 'menu');
+    pop.setAttribute('aria-label', 'Highlight color');
+    pop.style.left = Math.min(r.left, innerWidth - 220) + 'px';
+    /* toolbar sits at the bottom now — open the picker above it when below won't fit */
+    const below = r.bottom + 8, popH = 238;
+    pop.style.top = (below + popH > innerHeight ? Math.max(8, r.top - popH - 8) : below) + 'px';
+    pop.innerHTML = `
+      <div class="hl-label">Highlight</div>
+      <div class="hl-swatches">
+        ${HL_PRESETS.map(p => `<button class="hl-swatch" style="background:${p.c}" data-hl="${p.c}" title="${p.name}" aria-label="Highlight ${p.name}"></button>`).join('')}
+      </div>
+      <div class="hl-label">Pick a tint</div>
+      <div class="hl-wheel-wrap"><div class="hl-wheel" id="hlWheel" title="Click a hue" role="slider" aria-label="Custom highlight hue"></div></div>`;
+    document.body.appendChild(pop);
+    /* keep editor selection alive while interacting with the popover */
+    pop.addEventListener('mousedown', e => {
+      e.preventDefault(); /* keeps the editor selection alive */
+      const sw = e.target.closest('[data-hl]');
+      if (sw){ applyHilite(sw.dataset.hl); return; }
+      if (e.target.id === 'hlWheel'){
+        const wr = e.target.getBoundingClientRect();
+        const dx = e.clientX - (wr.left + wr.width/2);
+        const dy = e.clientY - (wr.top + wr.height/2);
+        const hue = Math.round((Math.atan2(dy, dx) * 180 / Math.PI + 450) % 360);
+        applyHilite(`hsla(${hue}, 90%, 76%, .55)`, { close: false });
+      }
+    });
+    const dismiss = ev => {
+      if (!pop.contains(ev.target) && !anchor.contains(ev.target)) closeHilitePop();
+    };
+    const escClose = ev => { if (ev.key === 'Escape') closeHilitePop(); };
+    pop._cleanup = () => {
+      document.removeEventListener('mousedown', dismiss);
+      document.removeEventListener('keydown', escClose);
+    };
+    setTimeout(() => document.addEventListener('mousedown', dismiss), 0);
+    document.addEventListener('keydown', escClose);
+  }
+  $$('[data-block]').forEach(b => b.addEventListener('click', () => {
+    document.execCommand('formatBlock', false, b.dataset.block);
+    ed.focus();
+  }));
+
+  /* checklist toggling */
+  ed.addEventListener('click', e => {
+    const li = e.target.closest('ul.checklist > li');
+    if (li){
+      const r = li.getBoundingClientRect();
+      if (e.clientX < r.left + 26){ li.classList.toggle('done'); n.content = ed.innerHTML; n.modified = now(); save(); }
+    }
+  });
+
+  /* ---------- slash menu ---------- */
+  const menu = $('#slashMenu');
+  /* {caret} marks where the cursor lands after insertion — you start
+     typing inside the block immediately, no placeholder text to delete */
+  const BLOCKS = [
+    { k:'h1', t:'Heading 1', d:'Large section heading', i:'H₁', html:'<h1>{caret}<br></h1>' },
+    { k:'h2', t:'Heading 2', d:'Medium section heading', i:'H₂', html:'<h2>{caret}<br></h2>' },
+    { k:'h3', t:'Heading 3', d:'Small section heading', i:'H₃', html:'<h3>{caret}<br></h3>' },
+    { k:'list', t:'Bulleted list', d:'Simple list of items', i:'•', html:'<ul><li>{caret}<br></li></ul>' },
+    { k:'check', t:'Checklist', d:'Track to-dos inside a note', i:'☑', html:'<ul class="checklist"><li>{caret}<br></li></ul>' },
+    { k:'table', t:'Table', d:'2 × 3 starter table', i:'⊞', html:'<table><tr><th>{caret}<br></th><th><br></th></tr><tr><td><br></td><td><br></td></tr><tr><td><br></td><td><br></td></tr></table><p><br></p>' },
+    { k:'quote', t:'Quote', d:'Set a line apart', i:'❝', html:'<blockquote>{caret}<br></blockquote>' },
+    { k:'code', t:'Code block', d:'Monospaced block', i:'{}', html:'<pre><code>{caret}<br></code></pre><p><br></p>' },
+    { k:'callout', t:'Callout', d:'Highlight an idea', i:'💡', html:'<div class="callout"><p>{caret}<br></p></div><p><br></p>' },
+    { k:'divider', t:'Divider', d:'Horizontal rule', i:'—', html:'<hr><p>{caret}<br></p>' },
+  ];
+  let slashOpen = false, slashSel = 0, slashFiltered = BLOCKS;
+
+  function maybeSlash(){
+    const sel = getSelection();
+    if (!sel.rangeCount || !ed.contains(sel.anchorNode)) return closeSlash();
+    const node = sel.anchorNode;
+    const text = node.nodeType === 3 ? node.textContent.slice(0, sel.anchorOffset) : '';
+    const m = text.match(/(?:^|\s)\/([\w-]*)$/);
+    if (m){
+      slashFiltered = BLOCKS.filter(b => b.t.toLowerCase().includes(m[1].toLowerCase()));
+      if (!slashFiltered.length) return closeSlash();
+      slashSel = 0; slashOpen = true;
+      const r = sel.getRangeAt(0).getBoundingClientRect();
+      menu.hidden = false;
+      menu.style.left = Math.min(r.left, innerWidth - 260) + 'px';
+      menu.style.top = Math.min(r.bottom + 8, innerHeight - 340) + 'px';
+      renderSlash();
+    } else closeSlash();
+  }
+  function renderSlash(){
+    menu.innerHTML = slashFiltered.map((b, i) => `
+      <button class="fm-item ${i === slashSel ? 'sel' : ''}" data-slash="${b.k}" role="menuitem">
+        <span class="fm-ico">${b.i}</span><span>${b.t}<small>${b.d}</small></span>
+      </button>`).join('');
+  }
+  function closeSlash(){ slashOpen = false; menu.hidden = true; }
+  function applySlash(k){
+    const b = BLOCKS.find(x => x.k === k); if (!b) return;
+    const sel = getSelection(); if (!sel.rangeCount) return;
+    const node = sel.anchorNode;
+    if (node.nodeType === 3){
+      const t = node.textContent, off = sel.anchorOffset;
+      const m = t.slice(0, off).match(/\/([\w-]*)$/);
+      if (m){
+        node.textContent = t.slice(0, off - m[0].length) + t.slice(off);
+        const r = document.createRange();
+        r.setStart(node, off - m[0].length); r.collapse(true);
+        sel.removeAllRanges(); sel.addRange(r);
+      }
+    }
+    document.execCommand('insertHTML', false, b.html.replace('{caret}', '<span id="__caret__"></span>'));
+    /* move the cursor to the {caret} marker, then remove the marker */
+    const mk = ed.querySelector('#__caret__');
+    if (mk){
+      const r = document.createRange();
+      r.setStartBefore(mk); r.collapse(true);
+      const s2 = getSelection(); s2.removeAllRanges(); s2.addRange(r);
+      mk.remove();
+    }
+    closeSlash();
+    n.content = ed.innerHTML; n.modified = now(); save(); syncEmpty();
+  }
+  menu.onmousedown = e => {
+    e.preventDefault();
+    const b = e.target.closest('[data-slash]');
+    if (b) applySlash(b.dataset.slash);
+  };
+  ed.addEventListener('keydown', e => {
+    if (slashOpen){
+      if (e.key === 'ArrowDown'){ e.preventDefault(); slashSel = (slashSel+1) % slashFiltered.length; renderSlash(); return; }
+      if (e.key === 'ArrowUp'){ e.preventDefault(); slashSel = (slashSel-1+slashFiltered.length) % slashFiltered.length; renderSlash(); return; }
+      if (e.key === 'Enter'){ e.preventDefault(); applySlash(slashFiltered[slashSel].k); return; }
+      if (e.key === 'Escape'){ closeSlash(); return; }
+    }
+    if (e.key === 'Tab'){ e.preventDefault(); document.execCommand(e.shiftKey ? 'outdent' : 'indent'); }
+  });
+  ed.addEventListener('blur', () => setTimeout(closeSlash, 150));
+}
+
+/* ============================================================
+   Right panel
+   ============================================================ */
+function renderRpanel(){
+  const rp = $('#rpanel');
+  rp.onclick = null;
+  if (route.page !== 'note'){
+    const total = state.notes.filter(n => !n.archived).length;
+    const fav = state.notes.filter(n => n.favorite && !n.archived).length;
+    const arch = state.notes.filter(n => n.archived).length;
+    rp.innerHTML = `
+      <div class="rp-section"><div class="rp-label">Workspace</div>
+        <div class="rp-row"><span>Notes</span><b>${total}</b></div>
+        <div class="rp-row"><span>Projects</span><b>${state.projects.length}</b></div>
+        <div class="rp-row"><span>Favorites</span><b>${fav}</b></div>
+        <div class="rp-row"><span>Archived</span><b>${arch}</b></div>
+      </div>
+      <div class="rp-section"><div class="rp-label">Tips</div>
+        <p style="font-size:.8rem; color:var(--ink-2); line-height:1.6;">Open a note to see its details here — tags, counts, and quick actions.</p>
+      </div>`;
+    return;
+  }
+  const n = noteById(route.id); if (!n) return;
+  const words = wordCount(n), chars = textOf(n.content).length;
+  const reading = Math.max(1, Math.round(words / 220));
+  rp.innerHTML = `
+    <div class="rp-section"><div class="rp-label">Quick actions</div>
+      <div style="display:flex; flex-direction:column; gap:4px;">
+        <button class="nav-item" id="qaPin">${ICO.pin}<span class="truncate">${n.pinned ? 'Unpin note' : 'Pin note'}</span></button>
+        <button class="nav-item" id="qaFav">${n.favorite ? ICO.starFill : ICO.star}<span class="truncate">${n.favorite ? 'Remove favorite' : 'Add to favorites'}</span></button>
+        <button class="nav-item" id="qaArch">${ICO.archive}<span class="truncate">${n.archived ? 'Restore from archive' : 'Archive note'}</span></button>
+        <button class="nav-item" id="qaDel" style="color:#c4554d">${ICO.trash}<span class="truncate">Delete note</span></button>
+      </div>
+    </div>
+    <div class="rp-section"><div class="rp-label">Icon</div>
+      <button class="nav-item" id="qaIcon">${noteIco(n)}<span class="truncate">${n.icon ? 'Change icon' : 'Choose an icon'}</span></button>
+      <p style="font-size:.72rem; color:var(--ink-3); margin-top:6px; line-height:1.5;">Shows in the sidebar and on Home — never on the note page itself.</p>
+    </div>
+    <div class="rp-section"><div class="rp-label">Project</div>
+      <select class="select" id="qaProj" style="width:100%" aria-label="Assign to project">
+        <option value="">No project</option>
+        ${state.projects.map(p => `<option value="${p.id}" ${n.project===p.id?'selected':''}>${esc(p.title)}</option>`).join('')}
+      </select>
+    </div>
+    <div class="rp-section"><div class="rp-label">Tags</div>
+      <div class="tag-wrap">${n.tags.map(t => `<span class="tag">${esc(t)}<button data-rm-tag="${esc(t)}" aria-label="Remove tag ${esc(t)}">×</button></span>`).join('') || '<span class="empty-hint" style="padding:0">No tags</span>'}</div>
+      ${TAG_PRESETS.filter(t => !n.tags.includes(t)).length ? `
+      <div class="rp-label" style="margin-top:12px">Suggestions</div>
+      <div class="tag-wrap">${TAG_PRESETS.filter(t => !n.tags.includes(t)).map(t =>
+        `<button class="tag ghost" data-add-tag="${esc(t)}" aria-label="Add tag ${esc(t)}">+ ${esc(t)}</button>`).join('')}</div>` : ''}
+      <input class="tag-input" id="tagInput" type="text" placeholder="Or write your own, press Enter" aria-label="Add custom tag">
+    </div>
+    <div class="rp-section"><div class="rp-label">Details</div>
+      <div class="rp-row"><span>Words</span><b id="rpWords">${words}</b></div>
+      <div class="rp-row"><span>Characters</span><b id="rpChars">${chars}</b></div>
+      <div class="rp-row"><span>Reading time</span><b>${reading} min</b></div>
+      <div class="rp-row"><span>Created</span><b>${fmtDate(n.created)}</b></div>
+      <div class="rp-row"><span>Modified</span><b>${fmtTime(n.modified)}</b></div>
+    </div>
+    <div class="rp-section"><div class="rp-label">Export</div>
+      <button class="nav-item" id="qaPdf">${ICO.note}<span class="truncate">Export as PDF…</span></button>
+    </div>`;
+  $('#qaPin').addEventListener('click', () => { n.pinned = !n.pinned; save(); render(); toast(n.pinned ? 'Pinned' : 'Unpinned'); });
+  $('#qaFav').addEventListener('click', () => { n.favorite = !n.favorite; save(); render(); toast(n.favorite ? 'Added to favorites' : 'Removed from favorites'); });
+  $('#qaArch').addEventListener('click', () => { n.archived = !n.archived; save(); toast(n.archived ? 'Archived' : 'Restored'); n.archived ? go('archive') : render(); });
+  $('#qaIcon').addEventListener('click', e => openEmojiPicker(e.currentTarget, n));
+  $('#qaDel').addEventListener('click', async () => {
+    const ok = await glassConfirm({
+      title: 'Delete this note?',
+      message: `"${n.title || 'Untitled'}" will be removed permanently. This can't be undone.`,
+      confirmText: 'Delete note'
+    });
+    if (!ok) return;
+    state.notes = state.notes.filter(x => x.id !== n.id);
+    state.recent = state.recent.filter(x => x !== n.id);
+    save(); toast('Note deleted'); go('home');
+  });
+  $('#qaPdf').addEventListener('click', () => openPdfDialog(n));
+  $('#qaProj').addEventListener('change', e => { n.project = e.target.value || null; save(); render(); toast(n.project ? 'Moved to project' : 'Removed from project'); });
+  $('#tagInput').addEventListener('keydown', e => {
+    if (e.key === 'Enter' && e.target.value.trim()){
+      const t = e.target.value.trim().toLowerCase().replace(/\s+/g, '-');
+      if (!n.tags.includes(t)) n.tags.push(t);
+      save(); renderRpanel();
+      $('#tagInput')?.focus();
+    }
+  });
+  rp.onclick = e => {
+    const rm = e.target.closest('[data-rm-tag]');
+    if (rm){ n.tags = n.tags.filter(t => t !== rm.dataset.rmTag); save(); renderRpanel(); return; }
+    const ad = e.target.closest('[data-add-tag]');
+    if (ad){ if (!n.tags.includes(ad.dataset.addTag)) n.tags.push(ad.dataset.addTag); save(); renderRpanel(); }
+  };
+}
+
+/* ============================================================
+   In-app confirm dialog — native confirm() is blocked in some
+   embedded contexts, which silently broke note deletion.
+   ============================================================ */
+function glassConfirm({ title = 'Are you sure?', message = '', confirmText = 'Delete', cancelText = 'Cancel' } = {}){
+  return new Promise(resolve => {
+    $('#confirmOverlay')?.remove();
+    const ov = document.createElement('div');
+    ov.id = 'confirmOverlay';
+    ov.className = 'overlay open';
+    ov.setAttribute('role', 'dialog'); ov.setAttribute('aria-modal', 'true');
+    ov.setAttribute('aria-label', title);
+    ov.innerHTML = `
+      <div class="palette glass-strong mini-dialog">
+        <h3>${esc(title)}</h3>
+        <p>${esc(message)}</p>
+        <div class="row">
+          <button class="btn" id="cfYes" style="background:#d23b3b">${esc(confirmText)}</button>
+          <button class="btn ghost" id="cfNo" style="margin-left:auto">${esc(cancelText)}</button>
+        </div>
+      </div>`;
+    document.body.appendChild(ov);
+    const done = val => { ov.remove(); document.removeEventListener('keydown', onKey); resolve(val); };
+    const onKey = e => { if (e.key === 'Escape') done(false); };
+    ov.addEventListener('mousedown', e => { if (e.target === ov) done(false); });
+    $('#cfYes').addEventListener('click', () => done(true));
+    $('#cfNo').addEventListener('click', () => done(false));
+    document.addEventListener('keydown', onKey);
+    $('#cfNo').focus();
+  });
+}
+
+/* ============================================================
+   Note icon picker
+   ============================================================ */
+function openEmojiPicker(anchor, n){
+  $('#emojiPop')?.remove();
+  const pop = document.createElement('div');
+  pop.id = 'emojiPop';
+  pop.className = 'float-menu glass-strong emoji-pop';
+  pop.setAttribute('role', 'menu'); pop.setAttribute('aria-label', 'Note icon');
+  const r = anchor.getBoundingClientRect();
+  pop.style.left = Math.max(8, Math.min(r.left, innerWidth - 272)) + 'px';
+  pop.style.top = Math.max(8, Math.min(r.bottom + 8, innerHeight - 330)) + 'px';
+  pop.innerHTML = `
+    <div class="hl-label">Note icon</div>
+    <div class="emoji-grid">${NOTE_EMOJI.map(em =>
+      `<button data-emoji="${em}" class="${n.icon === em ? 'sel' : ''}" aria-label="Set icon ${em}">${em}</button>`).join('')}</div>
+    <button class="nav-item" data-emoji-clear style="margin-top:8px">${ICO.note}<span class="truncate">Use default icon</span></button>`;
+  document.body.appendChild(pop);
+  const close = () => {
+    pop.remove();
+    document.removeEventListener('mousedown', dismiss);
+    document.removeEventListener('keydown', onKey);
+  };
+  const dismiss = ev => { if (!pop.contains(ev.target) && !anchor.contains(ev.target)) close(); };
+  const onKey = ev => { if (ev.key === 'Escape') close(); };
+  pop.addEventListener('click', ev => {
+    const b = ev.target.closest('[data-emoji]');
+    if (b){ n.icon = b.dataset.emoji; save(); close(); renderSidebar(); renderRpanel(); toast('Icon updated'); return; }
+    if (ev.target.closest('[data-emoji-clear]')){ n.icon = null; save(); close(); renderSidebar(); renderRpanel(); toast('Icon reset'); }
+  });
+  setTimeout(() => {
+    document.addEventListener('mousedown', dismiss);
+    document.addEventListener('keydown', onKey);
+  }, 0);
+}
+
+/* ============================================================
+   Settings
+   ============================================================ */
+function renderSettings(v){
+  const s = state.settings;
+  v.innerHTML = `
+    <h1 class="page-h">Settings</h1>
+    <p class="page-sub">Tune Glass to the way you think.</p>
+
+    <div class="set-card glass">
+      <h3>Appearance</h3><p class="hint">Theme, color, and the feel of the glass itself.</p>
+      <div class="set-row"><div><div class="sl">Theme</div><div class="sd">Switch instantly, anywhere</div></div>
+        <div class="seg" role="group" aria-label="Theme">
+          <button data-set-theme="light" aria-pressed="${s.theme==='light'}">Light</button>
+          <button data-set-theme="dark" aria-pressed="${s.theme==='dark'}">Dark</button>
+        </div></div>
+      <div class="set-row"><div><div class="sl">Accent color</div><div class="sd">Used for selection, links, and focus</div></div>
+        <div class="swatches" role="group" aria-label="Accent color">
+          ${Object.keys(ACCENTS).map(k => `<button class="swatch" style="background:${ACCENT_HEX[k]}" data-accent="${k}" aria-pressed="${s.accent===k}" aria-label="${k} accent"></button>`).join('')}
+        </div></div>
+      <div class="set-row"><div><div class="sl">Blur intensity</div><div class="sd">How frosted the panels feel</div></div>
+        <input class="slider" type="range" min="4" max="40" value="${s.blur}" data-slide="blur" aria-label="Blur intensity"></div>
+      <div class="set-row"><div><div class="sl">Corner radius</div><div class="sd">Soft to sharp</div></div>
+        <input class="slider" type="range" min="2" max="24" value="${s.radius}" data-slide="radius" aria-label="Corner radius"></div>
+      <div class="set-row"><div><div class="sl">Text size</div><div class="sd">Scales the whole interface</div></div>
+        <input class="slider" type="range" min="0.85" max="1.25" step="0.05" value="${s.fontScale}" data-slide="fontScale" aria-label="Text size"></div>
+      <div class="set-row"><div><div class="sl">Density</div><div class="sd">Spacing between elements</div></div>
+        <div class="seg" role="group" aria-label="Density">
+          <button data-density="0.85" aria-pressed="${s.density==0.85}">Compact</button>
+          <button data-density="1" aria-pressed="${s.density==1}">Cozy</button>
+          <button data-density="1.15" aria-pressed="${s.density==1.15}">Spacious</button>
+        </div></div>
+    </div>
+
+    <div class="set-card glass">
+      <h3>Accessibility</h3><p class="hint">Glass should be readable for everyone.</p>
+      <div class="set-row"><div><div class="sl">High contrast</div><div class="sd">Stronger borders and more opaque panels</div></div>
+        <button class="switch" id="setContrast" role="switch" aria-checked="${s.contrast}" aria-label="High contrast"></button></div>
+      <div class="set-row"><div><div class="sl">Reduce motion</div><div class="sd">Calms the aurora and transitions</div></div>
+        <button class="switch" id="setMotion" role="switch" aria-checked="${s.motion==='reduced'}" aria-label="Reduce motion"></button></div>
+    </div>
+
+    <div class="set-card glass">
+      <h3>Workspace</h3><p class="hint">Where Glass opens and how it behaves.</p>
+      <div class="set-row"><div><div class="sl">Default page</div><div class="sd">Shown when Glass starts</div></div>
+        <select class="select" id="setDefault" aria-label="Default page">
+          ${['home','favorites','recent'].map(p => `<option value="${p}" ${s.defaultPage===p?'selected':''}>${p[0].toUpperCase()+p.slice(1)}</option>`).join('')}
+        </select></div>
+    </div>
+
+    <div class="set-card glass">
+      <h3>Data</h3><p class="hint">Your notes belong to you.</p>
+      <div class="set-row"><div><div class="sl">Export workspace</div><div class="sd">Download everything as JSON</div></div>
+        <button class="btn ghost" id="exportBtn">Export</button></div>
+      <div class="set-row"><div><div class="sl">Import workspace</div><div class="sd">Restore from a Glass export</div></div>
+        <button class="btn ghost" id="importBtn">Import</button>
+        <input type="file" id="importFile" accept=".json" hidden></div>
+      <div class="set-row"><div><div class="sl">Reset workspace</div><div class="sd">Start over with the welcome notes</div></div>
+        <button class="btn ghost" id="resetBtn" style="color:#c4554d">Reset</button></div>
+    </div>`;
+
+  v.onclick = e => {
+    const th = e.target.closest('[data-set-theme]');
+    if (th){ s.theme = th.dataset.setTheme; save(); render(); return; }
+    const ac = e.target.closest('[data-accent]');
+    if (ac){
+      const wasCrimson = s.accent === 'crimson';
+      s.accent = ac.dataset.accent; save(); render();
+      if (s.accent === 'crimson' && !wasCrimson){
+        const a = $('.aurora');
+        a.classList.remove('flare'); void a.offsetWidth; a.classList.add('flare');
+        setTimeout(() => a.classList.remove('flare'), 1300);
+        toast('Crimson unlocked');
+      }
+      return;
+    }
+    const dn = e.target.closest('[data-density]');
+    if (dn){ s.density = parseFloat(dn.dataset.density); save(); render(); return; }
+  };
+  $$('[data-slide]', v).forEach(sl => sl.addEventListener('input', e => {
+    s[e.target.dataset.slide] = parseFloat(e.target.value); applySettings(); save();
+  }));
+  $('#setContrast').addEventListener('click', e => { s.contrast = !s.contrast; e.target.setAttribute('aria-checked', s.contrast); applySettings(); save(); });
+  $('#setMotion').addEventListener('click', e => { s.motion = s.motion === 'reduced' ? 'auto' : 'reduced'; e.target.setAttribute('aria-checked', s.motion==='reduced'); applySettings(); save(); });
+  $('#setDefault').addEventListener('change', e => { s.defaultPage = e.target.value; save(); toast('Default page saved'); });
+
+  $('#exportBtn').addEventListener('click', () => {
+    const blob = new Blob([JSON.stringify(state, null, 2)], { type:'application/json' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob); a.download = 'glass-export.json'; a.click();
+    URL.revokeObjectURL(a.href); toast('Workspace exported');
+  });
+  $('#importBtn').addEventListener('click', () => $('#importFile').click());
+  $('#importFile').addEventListener('change', e => {
+    const f = e.target.files[0]; if (!f) return;
+    const r = new FileReader();
+    r.onload = () => {
+      try{
+        const data = JSON.parse(r.result);
+        if (!data.notes || !data.projects) throw new Error('bad shape');
+        state = data; save(); go('home'); toast('Workspace imported');
+      }catch(err){ toast('That file isn\'t a Glass export'); }
+    };
+    r.readAsText(f);
+  });
+  $('#resetBtn').addEventListener('click', async () => {
+    const ok = await glassConfirm({
+      title: 'Reset the workspace?',
+      message: 'All notes and projects will be removed and the welcome content restored.',
+      confirmText: 'Reset everything'
+    });
+    if (ok){ state = defaultState(); save(); go('home'); toast('Workspace reset'); }
+  });
+}
+
+/* ============================================================
+   Command palette
+   ============================================================ */
+let palOpen = false, palSel = 0, palItems = [];
+function openPalette(){
+  palOpen = true; palSel = 0;
+  $('#paletteOverlay').classList.add('open');
+  const inp = $('#palInput'); inp.value = ''; inp.focus();
+  buildPalette('');
+}
+function closePalette(){
+  palOpen = false; $('#paletteOverlay').classList.remove('open');
+}
+function buildPalette(q){
+  q = q.trim().toLowerCase();
+  const cmds = [
+    { t:'New note', sub:'N', i:ICO.plus, run: () => createNote() },
+    { t:'New project', sub:'', i:ICO.folder, run: createProject },
+    { t:'Go home', sub:'', i:ICO.home, run: () => go('home') },
+    { t:'Open favorites', sub:'', i:ICO.star, run: () => go('favorites') },
+    { t:'Open archive', sub:'', i:ICO.archive, run: () => go('archive') },
+    { t:'Open settings', sub:'', i:ICO.note, run: () => go('settings') },
+    { t:`Switch to ${state.settings.theme === 'dark' ? 'light' : 'dark'} theme`, sub:'', i:ICO.clock, run: toggleTheme },
+  ];
+  /* focus mode only makes sense inside a note */
+  if (route.page === 'note') cmds.push({ t:'Toggle focus mode', sub:'Ctrl .', i:ICO.note, run: toggleFocus });
+  /* fuzzy: every char of q appears in order */
+  const fuzzy = (text) => {
+    if (!q) return true;
+    text = text.toLowerCase();
+    if (text.includes(q)) return true;
+    let i = 0;
+    for (const c of text){ if (c === q[i]) i++; if (i === q.length) return true; }
+    return false;
+  };
+  const noteHits = state.notes.filter(n => !n.archived && (
+    fuzzy(n.title) || n.tags.some(t => fuzzy(t)) || (q.length > 2 && textOf(n.content).toLowerCase().includes(q))
+  )).sort((a,b) => b.modified - a.modified).slice(0, 7)
+    .map(n => ({ t: n.title || 'Untitled', sub: fmtTime(n.modified), i: noteIco(n), group:'Notes', run: () => go('note', n.id) }));
+  const projHits = state.projects.filter(p => fuzzy(p.title) || p.tags.some(t => fuzzy(t))).slice(0, 4)
+    .map(p => ({ t: p.title, sub: p.status, i: ICO.folder, group:'Projects', run: () => go('project', p.id) }));
+  const cmdHits = cmds.filter(c => fuzzy(c.t)).map(c => ({ ...c, group:'Commands' }));
+
+  palItems = [...noteHits, ...projHits, ...cmdHits];
+  if (q && !state.searchHistory.includes(q)){ state.searchHistory = [q, ...state.searchHistory].slice(0, 10); save(); }
+
+  const list = $('#palList');
+  if (!palItems.length){ list.innerHTML = `<div class="pal-empty">No matches for "${esc(q)}" — try fewer letters.</div>`; return; }
+  let html = '', lastGroup = '';
+  palItems.forEach((it, idx) => {
+    if (it.group !== lastGroup){ html += `<div class="pal-group">${it.group}</div>`; lastGroup = it.group; }
+    html += `<button class="pal-item ${idx === palSel ? 'sel' : ''}" data-pal="${idx}" role="option" aria-selected="${idx===palSel}">${it.i}<span>${esc(it.t)}</span><span class="pi-sub">${esc(it.sub)}</span></button>`;
+  });
+  list.innerHTML = html;
+  list.querySelector('.sel')?.scrollIntoView({ block:'nearest' });
+}
+
+/* ============================================================
+   Actions
+   ============================================================ */
+function createNote(projectId = null){
+  const n = { id: uid(), title: '', project: typeof projectId === 'string' ? projectId : null,
+    tags: [], pinned: false, favorite: false, archived: false,
+    created: now(), modified: now(), content: '' };
+  state.notes.unshift(n); save();
+  go('note', n.id);
+  setTimeout(() => $('#noteTitle')?.focus(), 50);
+}
+function createProject(){
+  const p = { id: uid(), title: 'New project', description: '', status: 'planned', tags: [], created: now(), tasks: [] };
+  state.projects.push(p); save();
+  go('project', p.id);
+  setTimeout(() => { const t = $('#projTitle'); t?.focus(); t?.select(); }, 50);
+}
+function markDirty(){ $('#saveNoteBtn')?.classList.add('dirty'); }
+function updateLiveCounts(n){
+  const words = wordCount(n), chars = textOf(n.content).length;
+  const lc = $('#liveCount'); if (lc) lc.textContent = words + ' words';
+  const w = $('#rpWords'); if (w) w.textContent = words;
+  const c = $('#rpChars'); if (c) c.textContent = chars;
+}
+function saveCurrentNote(){
+  if (route.page !== 'note') return;
+  const n = noteById(route.id); if (!n) return;
+  n.modified = now(); save();
+  $('#saveNoteBtn')?.classList.remove('dirty');
+  const ea = $('#editedAt'); if (ea) ea.textContent = 'Saved just now';
+  renderSidebar();      /* re-sort by modified */
+  renderRpanel();       /* refresh Modified / Reading time */
+  toast('Saved');
+}
+function toggleTheme(){
+  state.settings.theme = state.settings.theme === 'dark' ? 'light' : 'dark';
+  applySettings(); save();
+  if (route.page === 'settings') render();
+}
+function toggleFocus(){
+  if (route.page !== 'note') return; /* focus mode lives in notes only */
+  const app = $('#app');
+  /* measure the topbar so its slide-away animation is exact */
+  app.style.setProperty('--topbar-h', $('.topbar').offsetHeight + 'px');
+  app.dataset.focus = app.dataset.focus === 'on' ? 'off' : 'on';
+  app.classList.remove('peek');
+  toast(app.dataset.focus === 'on' ? 'Focus mode — hover the top edge for controls, Ctrl+. to exit' : 'Focus mode off');
+}
+
+/* in focus mode, the topbar peeks back in (as an overlay) when the
+   pointer nears the top of the window, or when it receives focus */
+document.addEventListener('mousemove', e => {
+  const app = $('#app');
+  if (app.dataset.focus !== 'on') return;
+  if (e.clientY <= 26) app.classList.add('peek');
+  else if (e.clientY > 120 && !$('.topbar').matches(':hover')) app.classList.remove('peek');
+});
+document.addEventListener('focusin', e => {
+  const app = $('#app');
+  if (app.dataset.focus === 'on' && $('.topbar').contains(e.target)) app.classList.add('peek');
+});
+
+/* ---------- toolbar reveal ----------
+   The dock opens when the pointer nears the bottom edge of the note
+   panel (measured against the panel itself, so short documents behave
+   exactly like long ones), and closes with a short grace period so it
+   never flickers. Keyboard focus inside the dock also keeps it open. */
+(() => {
+  const content = $('#content'), dock = $('#tbDock');
+  content.addEventListener('mousemove', e => {
+    if (route.page !== 'note' || !dock.classList.contains('has-tb')) return;
+    const r = content.getBoundingClientRect();
+    const near = r.bottom - e.clientY <= 64;
+    if (near){
+      clearTimeout(tbCloseTimer);
+      if (!dock._hover){ dock._hover = true; tbSync(); }
+    } else if (dock._hover){
+      clearTimeout(tbCloseTimer);
+      tbCloseTimer = setTimeout(() => { dock._hover = false; tbSync(); }, 240);
+    }
+  });
+  content.addEventListener('mouseleave', () => {
+    if (!dock.classList.contains('has-tb')) return;
+    clearTimeout(tbCloseTimer);
+    tbCloseTimer = setTimeout(() => { dock._hover = false; tbSync(); }, 240);
+  });
+  dock.addEventListener('focusin', () => { dock._focus = true; tbSync(); });
+  dock.addEventListener('focusout', () => {
+    setTimeout(() => { dock._focus = dock.contains(document.activeElement); tbSync(); }, 0);
+  });
+})();
+
+/* ============================================================
+   PDF export — print the current note, themed or plain
+   ============================================================ */
+function openPdfDialog(n){
+  $('#pdfOverlay')?.remove();
+  const ov = document.createElement('div');
+  ov.id = 'pdfOverlay';
+  ov.className = 'overlay open';
+  ov.setAttribute('role', 'dialog'); ov.setAttribute('aria-modal', 'true');
+  ov.setAttribute('aria-label', 'Export as PDF');
+  ov.innerHTML = `
+    <div class="palette glass-strong mini-dialog">
+      <h3>Export as PDF</h3>
+      <p>"${esc(n.title) || 'Untitled'}" will open in your browser's print dialog — choose "Save as PDF" there.</p>
+      <div class="row">
+        <button class="btn" id="pdfThemed">Keep Glass theme</button>
+        <button class="btn ghost" id="pdfPlain">Plain document</button>
+        <button class="btn ghost" id="pdfCancel" style="margin-left:auto">Cancel</button>
+      </div>
+    </div>`;
+  document.body.appendChild(ov);
+  const close = () => ov.remove();
+  ov.addEventListener('mousedown', e => { if (e.target === ov) close(); });
+  $('#pdfCancel').addEventListener('click', close);
+  $('#pdfThemed').addEventListener('click', () => { close(); printNote(n, 'themed'); });
+  $('#pdfPlain').addEventListener('click', () => { close(); printNote(n, 'plain'); });
+  document.addEventListener('keydown', function esc2(e){
+    if (e.key === 'Escape'){ close(); document.removeEventListener('keydown', esc2); }
+  });
+}
+function printNote(n, mode){
+  $('#printArea')?.remove();
+  const pa = document.createElement('div');
+  pa.id = 'printArea';
+  pa.className = mode;
+  pa.innerHTML = `
+    <h1 class="pr-title">${esc(n.title) || 'Untitled'}</h1>
+    <div class="pr-meta">${fmtDate(n.modified)} · ${wordCount(n)} words${n.tags.length ? ' · ' + n.tags.map(esc).join(', ') : ''} · made with Glass</div>
+    <div class="pr-body editor">${n.content}</div>`;
+  document.body.appendChild(pa);
+  const cleanup = () => { pa.remove(); window.removeEventListener('afterprint', cleanup); };
+  window.addEventListener('afterprint', cleanup);
+  try{ window.print(); }
+  catch(e){ toast('Printing isn\'t available here — try the desktop browser'); cleanup(); }
+}
+
+/* ============================================================
+   Global events
+   ============================================================ */
+document.addEventListener('click', e => {
+  const nav = e.target.closest('[data-nav]');
+  if (nav){ go(nav.dataset.nav); return; }
+  const goTo = e.target.closest('[data-go]');
+  if (goTo){ go(goTo.dataset.go); return; }
+  const note = e.target.closest('[data-note], [data-open-note]');
+  if (note){ go('note', note.dataset.note || note.dataset.openNote); return; }
+  const proj = e.target.closest('[data-proj], [data-open-proj]');
+  if (proj){ go('project', proj.dataset.proj || proj.dataset.openProj); return; }
+});
+
+$('#newNoteBtn').addEventListener('click', () => createNote());
+$('#addNoteSb').addEventListener('click', () => createNote());
+$('#addProjSb').addEventListener('click', createProject);
+$('#themeToggle').addEventListener('click', toggleTheme);
+$('#focusBtn').addEventListener('click', toggleFocus);
+$('#openPalette').addEventListener('click', openPalette);
+$('#toggleSidebar').addEventListener('click', () => {
+  const app = $('#app');
+  app.dataset.sidebar = app.dataset.sidebar === 'open' ? 'closed' : 'open';
+  state.ui.sidebar = app.dataset.sidebar === 'open'; save();
+});
+$('#toggleRpanel').addEventListener('click', () => {
+  const app = $('#app');
+  app.dataset.rpanel = app.dataset.rpanel === 'open' ? 'closed' : 'open';
+  state.ui.rpanel = app.dataset.rpanel === 'open'; save();
+});
+
+$('#paletteOverlay').addEventListener('mousedown', e => { if (e.target === e.currentTarget) closePalette(); });
+$('#palInput').addEventListener('input', e => { palSel = 0; buildPalette(e.target.value); });
+$('#palInput').addEventListener('keydown', e => {
+  if (e.key === 'ArrowDown'){ e.preventDefault(); palSel = Math.min(palSel + 1, palItems.length - 1); buildPalette(e.target.value); }
+  else if (e.key === 'ArrowUp'){ e.preventDefault(); palSel = Math.max(palSel - 1, 0); buildPalette(e.target.value); }
+  else if (e.key === 'Enter'){ e.preventDefault(); const it = palItems[palSel]; if (it){ closePalette(); it.run(); } }
+  else if (e.key === 'Escape'){ closePalette(); }
+});
+$('#palList').addEventListener('click', e => {
+  const b = e.target.closest('[data-pal]');
+  if (b){ const it = palItems[+b.dataset.pal]; closePalette(); it.run(); }
+});
+
+document.addEventListener('keydown', e => {
+  const mod = e.metaKey || e.ctrlKey;
+  const typing = /INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName) || document.activeElement.isContentEditable;
+  if (mod && e.key.toLowerCase() === 'k'){ e.preventDefault(); palOpen ? closePalette() : openPalette(); return; }
+  if (mod && e.key === '\\'){ e.preventDefault(); $('#toggleSidebar').click(); return; }
+  if (mod && e.key === '.'){ e.preventDefault(); if (route.page === 'note') toggleFocus(); return; }
+  if (mod && e.key.toLowerCase() === 's'){ e.preventDefault(); saveCurrentNote(); return; }
+  if (e.key === 'Escape' && palOpen){ closePalette(); return; }
+  if (!typing && !mod && e.key.toLowerCase() === 'n'){ e.preventDefault(); createNote(); }
+});
+
+/* ============================================================
+   Init
+   ============================================================ */
+(async function init(){
+  await loadState();
+  /* migrate / guard */
+  state.settings = Object.assign(defaultState().settings, state.settings || {});
+  if (state.settings.accent === 'rose') state.settings.accent = 'crimson';
+  if (!ACCENTS[state.settings.accent]) state.settings.accent = 'glacier';
+  state.ui = Object.assign({ sidebar: true, rpanel: true }, state.ui || {});
+  /* keep the reference shortcuts note current with the app */
+  const sc = state.notes.find(n =>
+    (n.title || '').toLowerCase() === 'keyboard shortcuts' && (n.tags || []).includes('reference'));
+  if (sc) sc.content = SHORTCUTS_HTML;
+  const app = $('#app');
+  app.dataset.sidebar = state.ui.sidebar ? 'open' : 'closed';
+  app.dataset.rpanel = state.ui.rpanel ? 'open' : 'closed';
+  if (innerWidth < 900) app.dataset.sidebar = 'closed';
+  if (innerWidth < 1160) app.dataset.rpanel = 'closed';
+  route.page = state.settings.defaultPage || 'home';
+  render();
+})();
+
+/* panels become floating drawers on narrow windows — close them when
+   the window shrinks past a breakpoint so they don't cover the page */
+let lastW = innerWidth;
+addEventListener('resize', () => {
+  const app = $('#app');
+  if (innerWidth < 900 && lastW >= 900) app.dataset.sidebar = 'closed';
+  if (innerWidth < 1160 && lastW >= 1160) app.dataset.rpanel = 'closed';
+  lastW = innerWidth;
+});
+</script>
+</body>
+</html>
