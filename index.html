@@ -234,8 +234,14 @@ input, select{ font-family: inherit; color: inherit; }
   font-size: .68rem; font-weight: 650; letter-spacing:.09em; text-transform: uppercase;
   color: var(--ink-3); padding: 4px 8px 6px; white-space: nowrap;
 }
-.sb-label button{ opacity:0; transition: opacity var(--t-fast); color: var(--ink-2); padding:2px 6px; border-radius:6px; font-size:.85rem; line-height:1; }
-.sb-section:hover .sb-label button, .sb-label button:focus-visible{ opacity:1; }
+.sb-label button{ transition: opacity var(--t-fast); color: var(--ink-2); padding:2px 6px; border-radius:6px; font-size:.85rem; line-height:1; }
+/* Tuck the add-buttons away only on hover-capable devices. On touch they
+   stay visible: iOS treats hover-revealed content as "needs a first tap
+   to hover" — which made every tap inside these sections need two taps. */
+@media (hover: hover) and (pointer: fine){
+  .sb-label button{ opacity:0; }
+  .sb-section:hover .sb-label button, .sb-label button:focus-visible{ opacity:1; }
+}
 .sb-label button:hover{ background: var(--hover); }
 
 .nav-item{
@@ -258,9 +264,12 @@ input, select{ font-family: inherit; color: inherit; }
 .nav-item .meta-ico{ display:flex; gap:4px; align-items:center; color: var(--ink-3); }
 .nav-item .meta-ico svg{ width:12px; height:12px; }
 .nav-item .row-x{
-  opacity:0; color:var(--ink-3); border-radius:6px; padding:2px; line-height:0; flex-shrink:0;
+  color:var(--ink-3); border-radius:6px; padding:2px; line-height:0; flex-shrink:0;
 }
-.nav-item:hover .row-x, .nav-item:focus-within .row-x{ opacity:1; }
+@media (hover: hover) and (pointer: fine){
+  .nav-item .row-x{ opacity:0; }
+  .nav-item:hover .row-x, .nav-item:focus-within .row-x{ opacity:1; }
+}
 .row-x:hover{ background: var(--hover); color: var(--ink); }
 .dot{ width:8px; height:8px; border-radius:50%; flex-shrink:0; }
 
@@ -356,7 +365,12 @@ input, select{ font-family: inherit; color: inherit; }
   pointer-events: none;
 }
 #tbDock.has-tb{ display: flex; }
-.tb-wrap{ display:flex; flex-direction:column; align-items:center; min-width:0; }
+.tb-wrap{
+  display:flex; flex-direction:column; align-items:center; min-width:0;
+  /* ride above the iOS on-screen keyboard (--kb set from visualViewport) */
+  transform: translateY(calc(-1 * var(--kb, 0px)));
+  transition: transform .25s var(--ease);
+}
 .toolbar{
   display:inline-flex; align-items:center; gap:2px; padding: 5px;
   flex-wrap: wrap; justify-content: center;
@@ -386,6 +400,11 @@ input, select{ font-family: inherit; color: inherit; }
   transition: color var(--t-fast), background var(--t-fast);
 }
 .tb-handle:hover{ color: var(--ink); }
+/* invisible 44pt-class hit zones around the slim pull-tabs (Apple HIG) */
+.tb-handle{ position: relative; }
+.tb-handle::after{ content:''; position:absolute; inset:-14px -18px 0; }
+.qt-handle{ position: relative; }
+.qt-handle::after{ content:''; position:absolute; inset:0 -18px -14px; }
 .tb-handle svg{ width: 12px; height: 12px; transition: transform .3s var(--ease); }
 #tbDock.open .tb-handle svg{ transform: rotate(180deg); }
 .tb-pin[aria-pressed="true"]{ color: rgb(var(--accent)); background: rgba(var(--accent)/.13); }
@@ -674,7 +693,7 @@ input, select{ font-family: inherit; color: inherit; }
 
 /* toast */
 .toast{
-  position:fixed; bottom: calc(26px + env(safe-area-inset-bottom, 0px)); left:50%; transform: translate(-50%, 16px);
+  position:fixed; bottom: calc(26px + env(safe-area-inset-bottom, 0px) + var(--kb, 0px)); left:50%; transform: translate(-50%, 16px);
   z-index: 100; padding: 10px 18px; font-size:.85rem; font-weight:530;
   opacity:0; pointer-events:none; transition: opacity var(--t-fast), transform var(--t-med) var(--ease);
 }
@@ -774,6 +793,56 @@ input, select{ font-family: inherit; color: inherit; }
 .drawer-open .fab{ opacity: 0; pointer-events: none; transform: scale(.8); }
 
 .seg button:disabled{ opacity: .35; cursor: not-allowed; }
+
+/* ============================================================
+   First-run welcome — plays once, saved with the workspace so an
+   installed PWA never replays it
+   ============================================================ */
+#welcome{
+  position: fixed; inset: 0; z-index: 200;
+  display: flex; align-items: center; justify-content: center;
+  padding: 24px;
+  background: rgba(var(--panel)/.32);
+  backdrop-filter: blur(20px) saturate(1.4);
+  -webkit-backdrop-filter: blur(20px) saturate(1.4);
+}
+#welcome.bye{ animation: wFade .55s var(--ease) forwards; pointer-events: none; }
+@keyframes wFade{ to{ opacity: 0; } }
+.w-card{ max-width: 520px; text-align: center; }
+.w-logo{
+  width: 64px; height: 64px; border-radius: 18px; margin: 0 auto 24px;
+  box-shadow: inset 0 1px 1px rgba(255,255,255,.5), 0 12px 34px -8px rgba(var(--accent)/.7);
+}
+.w-title{
+  font-family: var(--font-display); font-weight: 500; letter-spacing: -0.02em;
+  font-size: clamp(1.9rem, 1.2rem + 3vw, 2.7rem); line-height: 1.12;
+  margin-bottom: 14px;
+}
+.w-title em{ font-style: italic; color: rgb(var(--accent)); }
+.w-sub{ color: var(--ink-2); font-size: .97rem; line-height: 1.65; margin-bottom: 28px; }
+.w-hints{ display: flex; flex-direction: column; gap: 9px; margin-bottom: 32px; }
+.w-hint{
+  display: flex; align-items: center; gap: 12px; justify-content: center;
+  font-size: .86rem; color: var(--ink-2);
+}
+.w-hint kbd{
+  font-family: var(--font-ui); font-size: .72rem; font-weight: 560;
+  background: var(--hover); border: 1px solid var(--border-soft);
+  padding: 3px 9px; border-radius: 7px; color: var(--ink);
+  min-width: 34px;
+}
+/* staged entrance: rise out of a soft blur, one element at a time */
+.w-in{ animation: wIn .75s var(--ease) both; animation-delay: var(--wd, 0s); }
+@keyframes wIn{
+  from{ opacity: 0; transform: translateY(18px); filter: blur(8px); }
+  to{ opacity: 1; transform: none; filter: none; }
+}
+.w-logo.w-in{ animation: wLogo .85s var(--ease) both; animation-delay: var(--wd, 0s); }
+@keyframes wLogo{
+  from{ opacity: 0; transform: scale(.55) translateY(12px); }
+  60%{ opacity: 1; transform: scale(1.07); }
+  to{ opacity: 1; transform: none; }
+}
 
 /* ============================================================
    Confirm dialog & delete animation
@@ -1174,7 +1243,7 @@ input, select{ font-family: inherit; color: inherit; }
 <!-- command palette -->
 <div class="overlay" id="paletteOverlay" role="dialog" aria-modal="true" aria-label="Command palette">
   <div class="palette glass-strong">
-    <input class="pal-input" id="palInput" type="text" placeholder="Search notes, projects, and commands…" autocomplete="off" aria-label="Search">
+    <input class="pal-input" id="palInput" type="text" placeholder="Search notes, projects, and commands…" autocomplete="off" enterkeyhint="go" aria-label="Search">
     <div class="pal-list" id="palList" role="listbox"></div>
   </div>
 </div>
@@ -1245,7 +1314,8 @@ function defaultState(){
       accent: 'glacier', blur: 22, radius: 14, fontScale: 1, density: 1,
       contrast: false, motion: 'auto', defaultPage: 'home',
       hlColor: 'rgba(255, 222, 120, .55)',
-      toolbarPin: false /* the formatting toolbar starts unpinned */
+      toolbarPin: false, /* the formatting toolbar starts unpinned */
+      welcomed: false    /* first-run welcome plays once, then never again */
     },
     ui: { sidebar: true, rpanel: true },
     notes: [
@@ -1344,6 +1414,11 @@ function go(page, id=null){
     const app = $('#app');
     if (app.dataset.focus === 'on'){ app.dataset.focus = 'off'; app.classList.remove('peek'); }
   }
+  /* drawers yield to navigation: on narrow screens the panels float
+     over the page, so going somewhere always clears the way */
+  const app = $('#app');
+  if (sbOverlay() && app.dataset.sidebar === 'open') setPane('sidebar', false);
+  if (rpOverlay() && app.dataset.rpanel === 'open') setPane('rpanel', false);
   route = { page, id };
   if (page === 'note' && id){
     state.recent = [id, ...state.recent.filter(x => x !== id)].slice(0, 12);
@@ -1429,6 +1504,8 @@ function setPane(which, open){
   const app = $('#app');
   app.dataset[which] = open ? 'open' : 'closed';
   state.ui[which === 'sidebar' ? 'sidebar' : 'rpanel'] = open; save();
+  $('#toggleSidebar').setAttribute('aria-expanded', app.dataset.sidebar === 'open');
+  $('#toggleRpanel').setAttribute('aria-expanded', app.dataset.rpanel === 'open');
   syncScrim();
 }
 function syncScrim(){
@@ -1605,7 +1682,7 @@ function renderNote(v){
   if (!n){ go('home'); return; }
   const proj = n.project ? projById(n.project) : null;
   v.innerHTML = `
-    <input class="note-title" id="noteTitle" value="${esc(n.title)}" placeholder="Untitled" aria-label="Note title" spellcheck="false">
+    <input class="note-title" id="noteTitle" value="${esc(n.title)}" placeholder="Untitled" aria-label="Note title" spellcheck="false" enterkeyhint="next" autocapitalize="sentences">
     <div class="note-sub">
       ${n.pinned ? `<span class="pin-flag">${ICO.pin} Pinned</span>` : ''}
       <span id="editedAt">Saved ${fmtTime(n.modified)}</span>
@@ -1706,7 +1783,7 @@ function renderProject(v){
         </div>`).join('') || '<div class="empty-hint" style="padding:12px">No tasks yet.</div>'}
       </div>
       <div class="task-add" style="padding: 6px;">
-        <input id="taskInput" type="text" placeholder="Add a task and press Enter" aria-label="New task">
+        <input id="taskInput" type="text" placeholder="Add a task and press Enter" enterkeyhint="done" aria-label="New task">
       </div>
     </div>
 
@@ -2037,7 +2114,7 @@ function renderRpanel(){
       <div class="rp-label" style="margin-top:12px">Suggestions</div>
       <div class="tag-wrap">${TAG_PRESETS.filter(t => !n.tags.includes(t)).map(t =>
         `<button class="tag ghost" data-add-tag="${esc(t)}" aria-label="Add tag ${esc(t)}">+ ${esc(t)}</button>`).join('')}</div>` : ''}
-      <input class="tag-input" id="tagInput" type="text" placeholder="Or write your own, press Enter" aria-label="Add custom tag">
+      <input class="tag-input" id="tagInput" type="text" placeholder="Or write your own, press Enter" enterkeyhint="done" autocapitalize="none" aria-label="Add custom tag">
     </div>
     <div class="rp-section"><div class="rp-label">Details</div>
       <div class="rp-row"><span>Words</span><b id="rpWords">${words}</b></div>
@@ -2054,6 +2131,12 @@ function renderRpanel(){
   $('#qaArch').addEventListener('click', () => { n.archived = !n.archived; save(); toast(n.archived ? 'Archived' : 'Restored'); n.archived ? go('archive') : render(); });
   $('#qaIcon').addEventListener('click', e => openEmojiPicker(e.currentTarget, n));
   $('#qaDel').addEventListener('click', async () => {
+    const projectId = n.project; /* remember where home is before deleting */
+    /* the details drawer steps aside first, then the dialog speaks */
+    if (rpOverlay() && $('#app').dataset.rpanel === 'open'){
+      setPane('rpanel', false);
+      await new Promise(r => setTimeout(r, 260));
+    }
     const ok = await glassConfirm({
       title: 'Delete this note?',
       message: `"${n.title || 'Untitled'}" will be removed permanently. This can't be undone.`,
@@ -2066,11 +2149,20 @@ function renderRpanel(){
     await new Promise(r => setTimeout(r, 290));
     state.notes = state.notes.filter(x => x.id !== n.id);
     state.recent = state.recent.filter(x => x !== n.id);
-    save(); go('home'); view.classList.remove('deleting');
+    save();
+    /* land where the note lived: its project page, or home */
+    if (projectId && projById(projectId)) go('project', projectId);
+    else go('home');
+    view.classList.remove('deleting');
     toast('Note deleted');
   });
   $('#qaPdf').addEventListener('click', () => openPdfDialog(n));
-  $('#qaProj').addEventListener('change', e => { n.project = e.target.value || null; save(); render(); toast(n.project ? 'Moved to project' : 'Removed from project'); });
+  $('#qaProj').addEventListener('change', e => {
+    n.project = e.target.value || null; save(); render();
+    toast(n.project ? 'Moved to project' : 'Removed from project');
+    /* job done — the drawer steps aside on narrow screens */
+    if (rpOverlay()) setPane('rpanel', false);
+  });
   $('#tagInput').addEventListener('keydown', e => {
     if (e.key === 'Enter' && e.target.value.trim()){
       const t = e.target.value.trim().toLowerCase().replace(/\s+/g, '-');
@@ -2085,6 +2177,54 @@ function renderRpanel(){
     const ad = e.target.closest('[data-add-tag]');
     if (ad){ if (!n.tags.includes(ad.dataset.addTag)) n.tags.push(ad.dataset.addTag); save(); renderRpanel(); }
   };
+}
+
+/* ============================================================
+   First-run welcome — the hints match how this device is driven
+   ============================================================ */
+function showWelcome(){
+  const touch = document.documentElement.dataset.input === 'touch';
+  const k = /Mac/i.test(navigator.platform) ? '⌘' : 'Ctrl';
+  const hints = touch ? [
+    ['⇣', 'Pull down on a page to search everything'],
+    ['⇄', 'Swipe in from the edges for your panels'],
+    ['⇡', 'Swipe up from the bottom of a note to format']
+  ] : [
+    [`${k} K`, 'Search and jump anywhere'],
+    ['/', 'Insert blocks while you write'],
+    ['N', 'Start a new note from anywhere']
+  ];
+  const ov = document.createElement('div');
+  ov.id = 'welcome';
+  ov.setAttribute('role', 'dialog');
+  ov.setAttribute('aria-label', 'Welcome to Glass');
+  ov.innerHTML = `
+    <div class="w-card">
+      <div class="logo w-logo w-in" style="--wd:.15s" aria-hidden="true">
+        <svg viewBox="0 0 24 24"><text x="12" y="17.3" text-anchor="middle">G</text></svg>
+      </div>
+      <h1 class="w-title w-in" style="--wd:.4s">Welcome to <em>Glass</em>.</h1>
+      <p class="w-sub w-in" style="--wd:.65s">A quiet place to think. Your notes live behind frosted panels — clear when you need them, quiet when you don't, and saved right here on this device.</p>
+      <div class="w-hints w-in" style="--wd:.9s">
+        ${hints.map(h => `<div class="w-hint"><kbd>${h[0]}</kbd><span>${h[1]}</span></div>`).join('')}
+      </div>
+      <button class="btn w-in" id="wBegin" style="--wd:1.15s">Begin writing</button>
+    </div>`;
+  document.body.appendChild(ov);
+  const done = () => {
+    if (ov.classList.contains('bye')) return;
+    state.settings.welcomed = true; save();
+    ov.classList.add('bye');
+    setTimeout(() => ov.remove(), 580);
+    /* step inside with a little light */
+    const a = $('.aurora');
+    a.classList.remove('flare'); void a.offsetWidth; a.classList.add('flare');
+    setTimeout(() => a.classList.remove('flare'), 1300);
+    document.removeEventListener('keydown', onKey);
+  };
+  const onKey = e => { if (e.key === 'Enter' || e.key === 'Escape') done(); };
+  $('#wBegin').addEventListener('click', done);
+  document.addEventListener('keydown', onKey);
 }
 
 /* ============================================================
@@ -2589,6 +2729,7 @@ document.addEventListener('click', e => {
       onSidebar: !!e.target.closest('.sidebar'),
       onRpanel: !!e.target.closest('.rpanel'),
       onDock: !!e.target.closest('#tbDock'),
+      onEditor: !!e.target.closest('.editor, .note-title'),
       inContent: !!e.target.closest('.content'),
       atTop: content.scrollTop <= 0,
       nearBottom: t.clientY > r.bottom - 70
@@ -2610,7 +2751,9 @@ document.addEventListener('click', e => {
     });
     if (g.inContent && g.nearBottom && route.page === 'note' && dy < -44 && ay > ax)
       return fire(() => { tbLatch = true; tbSync(); });
-    if (g.inContent && g.atTop && dy > 80 && ay > ax * 1.6 && $('#content').scrollTop <= 0)
+    /* search pull-down: deliberate only — a long, nearly-vertical pull
+       that starts outside the editor, with the page already at the top */
+    if (g.inContent && !g.onEditor && g.atTop && dy > 120 && ax < 48 && ay > ax * 2.5 && $('#content').scrollTop <= 0)
       return fire(openPalette);
   }, { passive: true });
   document.addEventListener('touchend', () => { g = null; });
@@ -2644,6 +2787,18 @@ $('#qtFocus').addEventListener('click', () => { closeQt(); toggleFocus(); });
    glide back to the top (iOS status-bar habit) */
 $('#fabNew').addEventListener('click', () => createNote());
 $('#crumbs').addEventListener('click', () => $('#content').scrollTo({ top: 0, behavior: 'smooth' }));
+
+/* iOS on-screen keyboard: expose its height as --kb so the formatting
+   toolbar and toasts ride above it instead of hiding underneath */
+if (window.visualViewport){
+  const vv = window.visualViewport;
+  const updKb = () => {
+    const kb = Math.max(0, Math.round(innerHeight - vv.height - vv.offsetTop));
+    document.documentElement.style.setProperty('--kb', (kb > 60 ? kb : 0) + 'px');
+  };
+  vv.addEventListener('resize', updKb);
+  vv.addEventListener('scroll', updKb);
+}
 
 $('#paletteOverlay').addEventListener('mousedown', e => { if (e.target === e.currentTarget) closePalette(); });
 $('#palInput').addEventListener('input', e => { palSel = 0; buildPalette(e.target.value); });
@@ -2698,6 +2853,7 @@ document.addEventListener('keydown', e => {
   syncScrim();
   route.page = state.settings.defaultPage || 'home';
   render();
+  if (!state.settings.welcomed) showWelcome();
   /* PWA: offline shell (needs https or localhost; skipped on file://) */
   if ('serviceWorker' in navigator &&
       (location.protocol === 'https:' || ['localhost', '127.0.0.1'].includes(location.hostname))){

@@ -1,6 +1,6 @@
 /* Glass service worker — offline app shell.
    Bump CACHE when shipping a new version so old caches are purged. */
-const CACHE = 'glass-v2';
+const CACHE = 'glass-v3';
 const SHELL = [
   './',
   './index.html',
