@@ -296,6 +296,12 @@ input, select{ font-family: inherit; color: inherit; }
 .icon-btn svg{ width:17px; height:17px; }
 .crumbs{ flex:1; min-width:0; display:flex; align-items:center; gap:6px; font-size:.875rem; color: var(--ink-2); overflow:hidden; }
 .crumbs b{ color: var(--ink); font-weight: 560; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.crumb-link{
+  color: var(--ink-2); white-space: nowrap;
+  padding: 4px 7px; margin: -4px -3px; border-radius: 7px;
+  transition: background var(--t-fast), color var(--t-fast);
+}
+.crumb-link:hover{ background: var(--hover); color: var(--ink); }
 .search-pill{
   display:flex; align-items:center; gap:8px;
   padding: 7px 12px; border-radius: 999px;
@@ -1568,10 +1574,15 @@ function renderCrumbs(){
   if (route.page === 'note'){
     const n = noteById(route.id);
     const p = n && n.project ? projById(n.project) : null;
-    c.innerHTML = (p ? `<span>${esc(p.title)}</span><span aria-hidden="true">›</span>` : `<span>Notes</span><span aria-hidden="true">›</span>`) + `<b>${esc(n ? n.title || 'Untitled' : '')}</b>`;
+    /* the project crumb is a real link back to the project; the plain
+       "Notes" label isn't — there is no notes index page to go to */
+    c.innerHTML = (p
+      ? `<button class="crumb-link" data-crumb-proj="${p.id}">${esc(p.title)}</button><span aria-hidden="true">›</span>`
+      : `<span>Notes</span><span aria-hidden="true">›</span>`)
+      + `<b>${esc(n ? n.title || 'Untitled' : '')}</b>`;
   } else if (route.page === 'project'){
     const p = projById(route.id);
-    c.innerHTML = `<span>Projects</span><span aria-hidden="true">›</span><b>${esc(p ? p.title : '')}</b>`;
+    c.innerHTML = `<button class="crumb-link" data-crumb-home>Projects</button><span aria-hidden="true">›</span><b>${esc(p ? p.title : '')}</b>`;
   } else {
     const names = { home:'Home', favorites:'Favorites', recent:'Recent', archive:'Archive', settings:'Settings' };
     c.innerHTML = `<b>${names[route.page] || ''}</b>`;
@@ -1970,14 +1981,24 @@ function wireEditor(n){
     ed.focus();
   }));
 
-  /* checklist toggling */
-  ed.addEventListener('click', e => {
-    const li = e.target.closest('ul.checklist > li');
-    if (li){
-      const r = li.getBoundingClientRect();
-      if (e.clientX < r.left + 26){ li.classList.toggle('done'); n.content = ed.innerHTML; n.modified = now(); save(); }
-    }
+  /* checklist toggling — intercepted at mousedown/touchstart and the
+     event swallowed, so ticking a box never moves the caret into the
+     line (and never summons the keyboard on iOS) */
+  const tickAt = (x, target) => {
+    const li = target.closest ? target.closest('ul.checklist > li') : null;
+    if (!li) return false;
+    const r = li.getBoundingClientRect();
+    if (x >= r.left + 26) return false;
+    li.classList.toggle('done');
+    n.content = ed.innerHTML; n.modified = now(); save();
+    return true;
+  };
+  ed.addEventListener('mousedown', e => {
+    if (tickAt(e.clientX, e.target)) e.preventDefault();
   });
+  ed.addEventListener('touchstart', e => {
+    if (e.touches.length === 1 && tickAt(e.touches[0].clientX, e.target)) e.preventDefault();
+  }, { passive: false });
 
   /* ---------- slash menu ---------- */
   const menu = $('#slashMenu');
@@ -2250,7 +2271,16 @@ function glassConfirm({ title = 'Are you sure?', message = '', confirmText = 'De
         </div>
       </div>`;
     document.body.appendChild(ov);
-    const done = val => { ov.remove(); document.removeEventListener('keydown', onKey); resolve(val); };
+    /* leave the way we arrived: dropping .open replays the overlay fade
+       and the dialog's rise in reverse before the node is removed */
+    const done = val => {
+      if (ov._closing) return;
+      ov._closing = true;
+      ov.classList.remove('open');
+      setTimeout(() => ov.remove(), 260);
+      document.removeEventListener('keydown', onKey);
+      resolve(val);
+    };
     const onKey = e => { if (e.key === 'Escape') done(false); };
     ov.addEventListener('mousedown', e => { if (e.target === ov) done(false); });
     $('#cfYes').addEventListener('click', () => done(true));
@@ -2526,14 +2556,21 @@ function toggleFocus(){
   app.style.setProperty('--topbar-h', $('.topbar').offsetHeight + 'px');
   app.dataset.focus = app.dataset.focus === 'on' ? 'off' : 'on';
   app.classList.remove('peek');
-  toast(app.dataset.focus === 'on' ? 'Focus mode — hover the top edge for controls, Ctrl+. to exit' : 'Focus mode off');
+  const touch = document.documentElement.dataset.input === 'touch';
+  toast(app.dataset.focus === 'on'
+    ? (touch ? 'Focus mode — exit from the pull-tab up top' : 'Focus mode — hover the top edge for controls, Ctrl+. to exit')
+    : 'Focus mode off');
 }
 
 /* in focus mode, the topbar peeks back in (as an overlay) when the
-   pointer nears the top of the window, or when it receives focus */
+   pointer nears the top of the window, or when it receives focus.
+   Hover-capable pointers only: iOS fires synthetic mousemove on taps,
+   which made tapping the quick tab drop the topbar over it. On touch,
+   focus mode is exited from the quick tab instead. */
 document.addEventListener('mousemove', e => {
   const app = $('#app');
   if (app.dataset.focus !== 'on') return;
+  if (!matchMedia('(hover: hover)').matches) return;
   if (e.clientY <= 26) app.classList.add('peek');
   else if (e.clientY > 120 && !$('.topbar').matches(':hover')) app.classList.remove('peek');
 });
@@ -2594,7 +2631,12 @@ function openPdfDialog(n){
       </div>
     </div>`;
   document.body.appendChild(ov);
-  const close = () => ov.remove();
+  const close = () => {
+    if (ov._closing) return;
+    ov._closing = true;
+    ov.classList.remove('open');
+    setTimeout(() => ov.remove(), 260);
+  };
   ov.addEventListener('mousedown', e => { if (e.target === ov) close(); });
   $('#pdfCancel').addEventListener('click', close);
   $('#pdfThemed').addEventListener('click', () => { close(); printNote(n, 'themed'); });
@@ -2786,7 +2828,13 @@ $('#qtFocus').addEventListener('click', () => { closeQt(); toggleFocus(); });
 /* phone helpers: floating new-note button; tap the breadcrumbs to
    glide back to the top (iOS status-bar habit) */
 $('#fabNew').addEventListener('click', () => createNote());
-$('#crumbs').addEventListener('click', () => $('#content').scrollTo({ top: 0, behavior: 'smooth' }));
+/* breadcrumbs: crumb links navigate; anywhere else glides back to top */
+$('#crumbs').addEventListener('click', e => {
+  const pj = e.target.closest('[data-crumb-proj]');
+  if (pj){ go('project', pj.dataset.crumbProj); return; }
+  if (e.target.closest('[data-crumb-home]')){ go('home'); return; }
+  $('#content').scrollTo({ top: 0, behavior: 'smooth' });
+});
 
 /* iOS on-screen keyboard: expose its height as --kb so the formatting
    toolbar and toasts ride above it instead of hiding underneath */
