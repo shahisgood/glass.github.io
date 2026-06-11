@@ -2,7 +2,15 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" id="themeColorMeta" content="#0e1018">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Glass">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
 <title>Glass</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -90,7 +98,11 @@
    Base
    ============================================================ */
 *{ box-sizing:border-box; margin:0; padding:0; }
-html{ font-size: calc(16px * var(--font-scale)); }
+html{
+  font-size: calc(16px * var(--font-scale));
+  -webkit-text-size-adjust: 100%;
+  -webkit-tap-highlight-color: transparent;
+}
 body{
   font-family: var(--font-ui);
   color: var(--ink);
@@ -98,6 +110,7 @@ body{
   height: 100vh;
   height: 100dvh; /* mobile-safe viewport */
   overflow: hidden;
+  overscroll-behavior: none;
   -webkit-font-smoothing: antialiased;
   transition: background var(--t-med) var(--ease), color var(--t-med) var(--ease);
 }
@@ -136,7 +149,12 @@ body{
   outline-offset: 2px;
   border-radius: 6px;
 }
-button{ font-family: inherit; font-size: inherit; color: inherit; background: none; border: none; cursor: pointer; }
+button{
+  font-family: inherit; font-size: inherit; color: inherit;
+  background: none; border: none; cursor: pointer;
+  touch-action: manipulation; /* no 300ms delay / double-tap zoom on touch */
+  -webkit-user-select: none; user-select: none;
+}
 input, select{ font-family: inherit; color: inherit; }
 
 .sr-only{ position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; }
@@ -170,7 +188,13 @@ input, select{ font-family: inherit; color: inherit; }
   display: flex; gap: calc(clamp(8px, 1vw, 12px) * var(--density));
   height: 100vh;
   height: 100dvh;
-  padding: calc(clamp(8px, 1.2vw, 12px) * var(--density));
+  --pad: calc(clamp(8px, 1.2vw, 12px) * var(--density));
+  padding: var(--pad);
+  /* breathe around the notch / home indicator on iOS */
+  padding-top: calc(var(--pad) + env(safe-area-inset-top, 0px));
+  padding-bottom: calc(var(--pad) + env(safe-area-inset-bottom, 0px));
+  padding-left: calc(var(--pad) + env(safe-area-inset-left, 0px));
+  padding-right: calc(var(--pad) + env(safe-area-inset-right, 0px));
 }
 
 /* ---------- Sidebar ---------- */
@@ -182,7 +206,7 @@ input, select{ font-family: inherit; color: inherit; }
 }
 .app[data-sidebar="closed"] .sidebar{
   width: 0; opacity: 0; border-width: 0;
-  margin-right: calc(-12px * var(--density));
+  margin-right: calc(-1 * clamp(8px, 1vw, 12px) * var(--density));
   pointer-events: none;
 }
 .sb-head{
@@ -273,7 +297,7 @@ input, select{ font-family: inherit; color: inherit; }
 .search-pill:hover{ background: var(--active); color: var(--ink-2); }
 .search-pill kbd{ font-family: var(--font-ui); font-size:.7rem; background: rgba(var(--panel)/.9); border:1px solid var(--border-soft); padding:1px 6px; border-radius:6px; }
 
-.content{ flex:1; overflow-y:auto; position:relative; display:flex; flex-direction:column; }
+.content{ flex:1; overflow-y:auto; position:relative; display:flex; flex-direction:column; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }
 .content-inner{ width:100%; flex:1 0 auto; max-width: 860px; margin: 0 auto; padding: calc(clamp(18px, 3.4vw, 30px) * var(--density)) calc(clamp(16px, 4vw, 34px) * var(--density)) calc(48px * var(--density)); }
 
 /* ---------- Right panel ---------- */
@@ -284,7 +308,7 @@ input, select{ font-family: inherit; color: inherit; }
 }
 .app[data-rpanel="closed"] .rpanel{
   width:0; opacity:0; padding-left:0; padding-right:0; border-width:0;
-  margin-left: calc(-12px * var(--density)); pointer-events:none;
+  margin-left: calc(-1 * clamp(8px, 1vw, 12px) * var(--density)); pointer-events:none;
 }
 .rp-section{ margin-bottom: calc(20px * var(--density)); }
 .rp-label{ font-size:.68rem; font-weight:650; letter-spacing:.09em; text-transform:uppercase; color:var(--ink-3); margin-bottom:8px; white-space:nowrap; }
@@ -650,11 +674,131 @@ input, select{ font-family: inherit; color: inherit; }
 
 /* toast */
 .toast{
-  position:fixed; bottom: 26px; left:50%; transform: translate(-50%, 16px);
+  position:fixed; bottom: calc(26px + env(safe-area-inset-bottom, 0px)); left:50%; transform: translate(-50%, 16px);
   z-index: 100; padding: 10px 18px; font-size:.85rem; font-weight:530;
   opacity:0; pointer-events:none; transition: opacity var(--t-fast), transform var(--t-med) var(--ease);
 }
 .toast.show{ opacity:1; transform: translate(-50%, 0); }
+
+/* ============================================================
+   Touch & device adaptations
+   ============================================================ */
+/* scrim behind drawer panels on narrow screens — lives INSIDE .app so
+   the drawers (z 45) stack above it; a plain tint (no backdrop blur)
+   keeps drawer animations smooth on phones */
+.scrim{
+  position: fixed; inset: 0; z-index: 40;
+  background: rgba(8,10,20,.45);
+  opacity: 0; pointer-events: none;
+  transition: opacity var(--t-med) var(--ease);
+}
+.scrim.show{ opacity: 1; pointer-events: auto; }
+
+/* quick tab — a pull-tab centered at the top of the content panel,
+   touch devices only. Holds theme, focus, search, and new note, and
+   stays reachable in focus mode (where the topbar is hidden). */
+#quickTab{
+  position: sticky; top: 0; z-index: 24;
+  display: none; justify-content: center;
+  height: 0; pointer-events: none;
+}
+[data-input="touch"] #quickTab{ display: flex; }
+.qt-wrap{ display:flex; flex-direction:column; align-items:center; }
+.qt-handle{
+  pointer-events: auto;
+  width: 54px; height: 18px;
+  border-radius: 0 0 10px 10px;
+  background: rgb(var(--panel));
+  border: 1px solid var(--border-soft); border-top: none;
+  color: var(--ink-3);
+  display: grid; place-items: center;
+}
+.qt-handle svg{ width: 12px; height: 12px; transition: transform .3s var(--ease); }
+#quickTab.open .qt-handle svg{ transform: rotate(180deg); }
+.qt-bar{
+  pointer-events: auto;
+  display: flex; gap: 4px; padding: 6px;
+  margin-top: 8px;
+  background: rgb(var(--panel));
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-pop);
+  opacity: 0; transform: translateY(-12px) scale(.97); visibility: hidden;
+  transition: opacity .22s var(--ease), transform .3s var(--ease), visibility 0s linear .3s;
+}
+#quickTab.open .qt-bar{
+  opacity: 1; transform: none; visibility: visible;
+  transition: opacity .22s var(--ease), transform .3s var(--ease), visibility 0s;
+}
+
+/* roomier hit targets on touch screens */
+[data-input="touch"] .icon-btn{ width: 40px; height: 40px; }
+[data-input="touch"] .tb-btn{ width: 36px; height: 36px; }
+[data-input="touch"] .hl-caret{ width: 20px; height: 36px; }
+[data-input="touch"] .tb-handle{ width: 64px; height: 22px; }
+[data-input="touch"] .nav-item{ padding: calc(10px * var(--density)) 10px; }
+[data-input="touch"] .tb-hint{ display: none; }
+[data-input="touch"] .search-pill kbd{ display: none; }
+/* iOS zooms into inputs under 16px — keep them at 1rem on touch */
+[data-input="touch"] .tag-input,
+[data-input="touch"] .task-add input,
+[data-input="touch"] .proj-desc,
+[data-input="touch"] .select{ font-size: 1rem; }
+
+/* phone: the topbar slims down — search lives behind a pull-down
+   gesture, theme + focus live in the quick tab */
+[data-form="phone"] .search-pill{ display: none; }
+[data-form="phone"] #themeToggle{ display: none !important; }
+[data-form="phone"] #focusBtn{ display: none !important; }
+
+/* floating new-note button — phones only, on list pages */
+.fab{
+  position: fixed; z-index: 38;
+  right: calc(18px + env(safe-area-inset-right, 0px));
+  bottom: calc(22px + env(safe-area-inset-bottom, 0px));
+  width: 54px; height: 54px; border-radius: 50%;
+  display: none; place-items: center;
+  color: #fff;
+  background: linear-gradient(135deg, rgba(var(--accent)/.95), rgba(var(--accent)/.68));
+  box-shadow: 0 10px 26px -8px rgba(var(--accent)/.7), inset 0 1px 0 rgba(255,255,255,.3);
+  transition: transform var(--t-fast) var(--ease), opacity var(--t-med), box-shadow var(--t-fast);
+  animation: pop .35s var(--ease);
+}
+.fab:active{ transform: scale(.9); }
+.fab svg{ width: 22px; height: 22px; }
+[data-form="phone"][data-route="home"] .fab,
+[data-form="phone"][data-route="favorites"] .fab,
+[data-form="phone"][data-route="recent"] .fab,
+[data-form="phone"][data-route="archive"] .fab{ display: grid; }
+/* recede while a drawer + scrim own the screen */
+.drawer-open .fab{ opacity: 0; pointer-events: none; transform: scale(.8); }
+
+.seg button:disabled{ opacity: .35; cursor: not-allowed; }
+
+/* ============================================================
+   Confirm dialog & delete animation
+   ============================================================ */
+.overlay.center{ align-items: center; padding-top: 0; }
+.confirm-dialog{ text-align: center; width: min(360px, 92vw); animation: dialogIn .3s var(--ease); }
+.confirm-dialog .row{ justify-content: center; gap: 10px; }
+.confirm-ico{
+  width: 48px; height: 48px; border-radius: 50%;
+  margin: 0 auto 14px;
+  display: grid; place-items: center;
+  background: rgba(210,59,59,.13); color: #d23b3b;
+  animation: pop .4s var(--ease) .08s backwards;
+}
+.confirm-ico svg{ width: 22px; height: 22px; }
+.btn.danger{
+  background: #d23b3b;
+  box-shadow: 0 4px 14px -4px rgba(210,59,59,.55), inset 0 1px 0 rgba(255,255,255,.25);
+}
+@keyframes dialogIn{ from{ opacity: 0; transform: translateY(12px) scale(.95); } }
+
+@keyframes noteOut{
+  to{ opacity: 0; transform: translateY(14px) scale(.96); filter: blur(6px); }
+}
+.content-inner.deleting{ animation: noteOut .3s var(--ease) forwards; pointer-events: none; }
 
 /* ============================================================
    Focus mode — panels glide away; the topbar hides and drops
@@ -788,25 +932,43 @@ input, select{ font-family: inherit; color: inherit; }
   animation: flare 1.15s var(--ease), drift 60s var(--ease) infinite alternate;
 }
 
-/* ---------- Crimson mode — the whole room turns red ----------
-   The aurora gets hotter and more saturated, the base canvas is
-   tinted toward wine, and a slow ember glow breathes underneath. */
-[data-accent="crimson"][data-theme="light"]{ --bg-base: #f6ecee; }
-[data-accent="crimson"][data-theme="dark"]{ --bg-base: #150a10; }
-[data-accent="crimson"] .aurora{ filter: blur(38px) saturate(1.35) brightness(1.04); }
+/* ---------- Crimson mode — dark-only, and unapologetic about it ----
+   The accent runs hotter, the canvas sinks into wine-black, and the
+   aurora becomes a breathing ember field: crimson, magenta, and a
+   streak of burning orange that slowly shifts hue.                  */
+[data-accent="crimson"]{ --bg-base: #170a11; }
+[data-accent="crimson"] .aurora{ filter: blur(34px) saturate(1.55) brightness(1.12); }
 [data-accent="crimson"] .aurora::after{
   content:''; position:absolute; inset:0;
+  /* the hue variety lives in the gradient stops themselves — animating
+     only opacity + transform keeps it on the compositor (no repaints,
+     no jank on phone GPUs) */
   background:
-    radial-gradient(55% 60% at 50% 108%, rgba(220,20,60,.30), transparent 70%),
-    radial-gradient(34% 38% at 22% -6%, rgba(255,70,90,.20), transparent 70%),
-    radial-gradient(28% 32% at 88% 50%, rgba(255,110,70,.16), transparent 70%);
-  animation: emberPulse 7s ease-in-out infinite alternate;
+    radial-gradient(55% 60% at 50% 110%, rgba(236,30,72,.44), transparent 70%),
+    radial-gradient(40% 44% at 16% -8%, rgba(255,64,92,.30), transparent 70%),
+    radial-gradient(30% 36% at 86% 42%, rgba(255,118,56,.22), transparent 70%),
+    radial-gradient(26% 30% at 32% 56%, rgba(196,16,112,.26), transparent 70%),
+    radial-gradient(22% 26% at 64% 18%, rgba(255,40,130,.18), transparent 70%);
+  animation:
+    emberPulse 6.5s ease-in-out infinite alternate,
+    emberDrift 26s var(--ease) infinite alternate;
 }
 @keyframes emberPulse{
-  from{ opacity:.5; transform: translateY(.5%) scale(1); }
-  to{ opacity:1; transform: translateY(-1.5%) scale(1.03); }
+  from{ opacity:.55; }
+  to{ opacity:1; }
 }
-[data-accent="crimson"][data-theme="dark"] .editor{ caret-color: #ff5d75; }
+@keyframes emberDrift{
+  from{ transform: translate3d(-1.5%, .5%, 0) scale(1); }
+  to{ transform: translate3d(1.5%, -2%, 0) scale(1.05); }
+}
+[data-accent="crimson"] .editor{ caret-color: #ff5470; }
+[data-accent="crimson"] ::selection{ background: rgba(236,30,72,.42); }
+[data-accent="crimson"] .btn{
+  box-shadow: 0 4px 20px -4px rgba(236,30,72,.7), inset 0 1px 0 rgba(255,255,255,.25);
+}
+[data-accent="crimson"] .logo{
+  box-shadow: inset 0 1px 1px rgba(255,255,255,.5), 0 4px 18px -3px rgba(236,30,72,.85);
+}
 
 .swatch[data-accent="crimson"]{ position: relative; }
 .swatch[data-accent="crimson"]::after{
@@ -854,37 +1016,8 @@ input, select{ font-family: inherit; color: inherit; }
 .mini-dialog p{ font-size:.84rem; color: var(--ink-2); margin-bottom: 18px; line-height:1.55; }
 .mini-dialog .row{ display:flex; gap:10px; flex-wrap:wrap; }
 
-/* ============================================================
-   Print / PDF export
-   ============================================================ */
-#printArea{ display:none; }
-@media print{
-  body{ height:auto; overflow:visible; background:#fff; }
-  .aurora, .app, .overlay, .toast, .float-menu{ display:none !important; }
-  #printArea{ display:block; padding: 28px 8px; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-  #printArea h1.pr-title{ font-family: var(--font-display); font-size: 2.1rem; font-weight:550; letter-spacing:-0.015em; margin-bottom: 4px; }
-  #printArea .pr-meta{ font-size:.78rem; color:#777; margin-bottom: 22px; }
-  #printArea .pr-body{ font-size: 1rem; line-height: 1.7; }
-  /* plain mode: clean black-on-white */
-  #printArea.plain{ color:#111; }
-  #printArea.plain .pr-body blockquote{ border-left:3px solid #bbb; color:#444; }
-  #printArea.plain .pr-body pre, #printArea.plain .pr-body code{ background:#f3f3f3; border:1px solid #ddd; }
-  #printArea.plain .pr-body .callout{ background:#f5f5f5; border:1px solid #ddd; }
-  /* themed mode: carries the glass / aurora identity onto paper */
-  #printArea.themed{
-    color: var(--ink);
-    border-radius: 18px;
-    border: 1px solid rgba(120,140,200,.25);
-    padding: 34px 36px;
-    background:
-      radial-gradient(60% 50% at 12% 0%, var(--aur-1), transparent 70%),
-      radial-gradient(50% 45% at 95% 8%, var(--aur-2), transparent 70%),
-      radial-gradient(55% 50% at 90% 100%, var(--aur-3), transparent 70%),
-      var(--bg-base);
-  }
-  #printArea.themed h1.pr-title{ color: var(--ink); }
-  #printArea.themed .pr-meta{ color: var(--ink-2); }
-}
+/* PDF export renders into its own isolated iframe / tab document,
+   so the app needs no @media print styles of its own. */
 
 @media (prefers-reduced-motion: reduce){
   *{ animation-duration: 1ms !important; transition-duration: 1ms !important; }
@@ -896,17 +1029,40 @@ input, select{ font-family: inherit; color: inherit; }
    compacts. All reuse the existing open/close transitions.            */
 @media (max-width: 1160px){
   .rpanel{
-    position: fixed; right: 10px; top: 10px; bottom: 10px; z-index: 45;
-    width: min(300px, 80vw); box-shadow: var(--shadow-pop);
+    position: fixed; z-index: 45;
+    right: calc(10px + env(safe-area-inset-right, 0px));
+    top: calc(10px + env(safe-area-inset-top, 0px));
+    bottom: calc(10px + env(safe-area-inset-bottom, 0px));
+    width: min(300px, 82vw);
+    box-shadow: var(--shadow-pop);
+    will-change: transform, opacity;
+    /* slide, don't resize — width animations jank on phones */
+    transition: transform .34s var(--ease), opacity .28s var(--ease);
   }
-  .app[data-rpanel="closed"] .rpanel{ margin: 0; }
+  .app[data-rpanel="closed"] .rpanel{
+    width: min(300px, 82vw); margin: 0;
+    padding: calc(16px * var(--density));
+    border-width: 1px;
+    transform: translateX(calc(100% + 26px));
+    opacity: 0; pointer-events: none;
+  }
 }
 @media (max-width: 900px){
   .sidebar{
-    position: fixed; left: 10px; top: 10px; bottom: 10px; z-index: 45;
+    position: fixed; z-index: 45;
+    left: calc(10px + env(safe-area-inset-left, 0px));
+    top: calc(10px + env(safe-area-inset-top, 0px));
+    bottom: calc(10px + env(safe-area-inset-bottom, 0px));
+    width: min(280px, 84vw);
     box-shadow: var(--shadow-pop);
+    will-change: transform, opacity;
+    transition: transform .34s var(--ease), opacity .28s var(--ease);
   }
-  .app[data-sidebar="closed"] .sidebar{ margin: 0; }
+  .app[data-sidebar="closed"] .sidebar{
+    width: min(280px, 84vw); margin: 0; border-width: 1px;
+    transform: translateX(calc(-100% - 26px));
+    opacity: 0; pointer-events: none;
+  }
 }
 @media (max-width: 640px){
   .search-pill span, .search-pill kbd{ display:none; }
@@ -974,14 +1130,46 @@ input, select{ font-family: inherit; color: inherit; }
     </header>
 
     <main class="content glass" id="content" tabindex="-1">
+      <div id="quickTab">
+        <div class="qt-wrap">
+          <button class="qt-handle" id="qtHandle" aria-label="Quick controls" aria-expanded="false">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 10l6 5 6-5"/></svg>
+          </button>
+          <div class="qt-bar" role="toolbar" aria-label="Quick controls">
+            <button class="icon-btn" id="qtNew" aria-label="New note" title="New note">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+            </button>
+            <button class="icon-btn" id="qtSearch" aria-label="Search" title="Search">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+            </button>
+            <button class="icon-btn theme-toggle" id="qtTheme" aria-label="Toggle theme" title="Toggle theme">
+              <svg class="sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="4.5"/><path d="M12 2v2.5M12 19.5V22M4.9 4.9l1.8 1.8M17.3 17.3l1.8 1.8M2 12h2.5M19.5 12H22M4.9 19.1l1.8-1.8M17.3 6.7l1.8-1.8"/></svg>
+              <svg class="moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
+            </button>
+            <button class="icon-btn" id="qtFocus" aria-label="Toggle focus mode" title="Focus mode">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M8 3H5a2 2 0 0 0-2 2v3M16 3h3a2 2 0 0 1 2 2v3M8 21H5a2 2 0 0 1-2-2v-3M16 21h3a2 2 0 0 0 2-2v-3"/></svg>
+            </button>
+          </div>
+        </div>
+      </div>
       <div class="content-inner" id="view" aria-live="polite"></div>
       <div id="tbDock"></div>
     </main>
   </div>
 
+  <!-- scrim behind drawer panels on narrow screens (must live inside
+       .app — its stacking context would otherwise trap the drawers
+       underneath an outside scrim) -->
+  <div class="scrim" id="scrim" aria-hidden="true"></div>
+
   <!-- ============ RIGHT PANEL ============ -->
   <aside class="rpanel glass" id="rpanel" aria-label="Note details"></aside>
 </div>
+
+<!-- floating new-note button (phones, collection pages) -->
+<button class="fab" id="fabNew" aria-label="New note">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+</button>
 
 <!-- command palette -->
 <div class="overlay" id="paletteOverlay" role="dialog" aria-modal="true" aria-label="Command palette">
@@ -1008,7 +1196,7 @@ const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;
 
 const ACCENTS = {
   glacier: '94 139 255', sage: '63 154 121', lilac: '147 113 235',
-  amber: '214 138 49', crimson: '220 20 60', slate: '100 116 150'
+  amber: '214 138 49', crimson: '236 30 72', slate: '100 116 150'
 };
 /* per-accent aurora palettes — same idea, hue shifted toward the accent */
 const AURORAS = {
@@ -1028,9 +1216,9 @@ const AURORAS = {
     light: ['rgba(255,212,160,.55)','rgba(255,232,182,.45)','rgba(252,206,170,.45)','rgba(255,222,150,.40)'],
     dark:  ['rgba(190,120,40,.30)','rgba(200,140,60,.20)','rgba(170,95,40,.22)','rgba(210,150,50,.20)']
   },
-  crimson: { /* the exclusive one — unapologetically red */
+  crimson: { /* the exclusive one — dark-only; light palette feeds the PDF export */
     light: ['rgba(255,105,125,.62)','rgba(255,145,115,.50)','rgba(244,65,110,.44)','rgba(255,165,155,.48)'],
-    dark:  ['rgba(225,35,70,.48)','rgba(185,20,90,.34)','rgba(255,85,55,.26)','rgba(140,10,45,.42)']
+    dark:  ['rgba(236,30,72,.56)','rgba(205,16,108,.42)','rgba(255,92,48,.32)','rgba(152,6,50,.54)']
   },
   slate: {
     light: ['rgba(190,202,226,.55)','rgba(214,222,238,.45)','rgba(198,212,228,.45)','rgba(206,214,234,.40)'],
@@ -1038,12 +1226,12 @@ const AURORAS = {
   }
 };
 const TAG_PRESETS = ['important', 'idea', 'to-do', 'work', 'personal', 'reference', 'urgent', 'someday'];
-const ACCENT_HEX = { glacier:'#5e8bff', sage:'#3f9a79', lilac:'#9371eb', amber:'#d68a31', crimson:'#dc143c', slate:'#647496' };
+const ACCENT_HEX = { glacier:'#5e8bff', sage:'#3f9a79', lilac:'#9371eb', amber:'#d68a31', crimson:'#ec1e48', slate:'#647496' };
 
 const NOTE_EMOJI = ['📝','📓','📚','✏️','🖋️','📌','💡','⭐','🔥','🚀','🎯','🧠','💭','🗂️','🧪','🔬','🎨','📊','📅','🗺️','🌱','🌙','☀️','⚡','🧩','🔖','💼','🏠','❤️','🎵','📷','✈️','🛠️','🔒','💰','🏆','🌊','🍀','🎮','⏳','👋','⌨️'];
 
 /* the reference note's content — kept in one place so it can be refreshed */
-const SHORTCUTS_HTML = `<table><tr><th>Action</th><th>Shortcut</th></tr><tr><td>Command palette</td><td><code>Ctrl/Cmd + K</code></td></tr><tr><td>New note</td><td><code>N</code></td></tr><tr><td>Save note</td><td><code>Ctrl/Cmd + S</code></td></tr><tr><td>Toggle sidebar</td><td><code>Ctrl/Cmd + \\</code></td></tr><tr><td>Focus mode (in a note)</td><td><code>Ctrl/Cmd + .</code></td></tr><tr><td>Bold / Italic / Underline</td><td><code>Ctrl/Cmd + B / I / U</code></td></tr><tr><td>Insert a block</td><td><code>/</code> in the editor</td></tr><tr><td>Jump from title into the note</td><td><code>Tab</code> or <code>Enter</code></td></tr><tr><td>Indent / outdent in the editor</td><td><code>Tab</code> / <code>Shift + Tab</code></td></tr><tr><td>Close menu, palette, or dialog</td><td><code>Esc</code></td></tr></table>`;
+const SHORTCUTS_HTML = `<table><tr><th>Action</th><th>Shortcut</th></tr><tr><td>Command palette</td><td><code>Ctrl/Cmd + K</code></td></tr><tr><td>New note</td><td><code>N</code></td></tr><tr><td>Save note</td><td><code>Ctrl/Cmd + S</code></td></tr><tr><td>Toggle sidebar</td><td><code>Ctrl/Cmd + \\</code></td></tr><tr><td>Focus mode (in a note)</td><td><code>Ctrl/Cmd + .</code></td></tr><tr><td>Bold / Italic / Underline</td><td><code>Ctrl/Cmd + B / I / U</code></td></tr><tr><td>Export note as PDF</td><td><code>Ctrl/Cmd + P</code></td></tr><tr><td>Insert a block</td><td><code>/</code> in the editor</td></tr><tr><td>Jump from title into the note</td><td><code>Tab</code> or <code>Enter</code></td></tr><tr><td>Indent / outdent in the editor</td><td><code>Tab</code> / <code>Shift + Tab</code></td></tr><tr><td>Close menu, palette, or dialog</td><td><code>Esc</code></td></tr></table>`;
 
 /* ---------- state ---------- */
 let state = null;
@@ -1086,29 +1274,65 @@ function defaultState(){
   };
 }
 
-/* ---------- persistence (window.storage → localStorage → memory) ---------- */
+/* ---------- persistence (IndexedDB → localStorage → memory) ----------
+   IndexedDB is the primary store: durable, async, and the right fit
+   for an installed PWA. localStorage is kept as a mirror + fallback,
+   and legacy window.storage is still read once for migration.        */
+const DB_KEY = 'glass-state-v1';
+function idbOpen(){
+  return new Promise((res, rej) => {
+    const r = indexedDB.open('glass-db', 1);
+    r.onupgradeneeded = () => r.result.createObjectStore('kv');
+    r.onsuccess = () => res(r.result);
+    r.onerror = () => rej(r.error);
+  });
+}
+async function idbGet(key){
+  try{
+    const db = await idbOpen();
+    return await new Promise((res, rej) => {
+      const q = db.transaction('kv').objectStore('kv').get(key);
+      q.onsuccess = () => res(q.result);
+      q.onerror = () => rej(q.error);
+    });
+  }catch(e){ return undefined; }
+}
+async function idbSet(key, val){
+  try{
+    const db = await idbOpen();
+    await new Promise((res, rej) => {
+      const t = db.transaction('kv', 'readwrite');
+      t.objectStore('kv').put(val, key);
+      t.oncomplete = res;
+      t.onerror = () => rej(t.error);
+    });
+  }catch(e){ /* quota or private mode — localStorage mirror still has it */ }
+}
 let saveTimer = null;
 async function loadState(){
   try{
-    if (window.storage){
-      const r = await window.storage.get('glass-state-v1');
-      if (r && r.value){ state = JSON.parse(r.value); return; }
-    }
-  }catch(e){ /* unavailable — fall through */ }
+    const v = await idbGet(DB_KEY);
+    if (v){ state = JSON.parse(v); return; }
+  }catch(e){ /* fall through */ }
   try{
-    const raw = localStorage.getItem('glass-state-v1');
+    const raw = localStorage.getItem(DB_KEY);
     if (raw){ state = JSON.parse(raw); return; }
-  }catch(e){ /* blocked or corrupt — fall through */ }
+  }catch(e){ /* fall through */ }
+  try{
+    if (window.storage){ /* legacy artifact storage — one-time migration */
+      const r = await window.storage.get(DB_KEY);
+      if (r && r.value){ state = JSON.parse(r.value); save(); return; }
+    }
+  }catch(e){ /* fall through */ }
   state = defaultState();
 }
 function save(){
   clearTimeout(saveTimer);
-  saveTimer = setTimeout(async () => {
+  saveTimer = setTimeout(() => {
     const json = JSON.stringify(state);
-    try{ if (window.storage) await window.storage.set('glass-state-v1', json); }
-    catch(e){ /* ignore */ }
-    try{ localStorage.setItem('glass-state-v1', json); }
-    catch(e){ /* in-memory only */ }
+    idbSet(DB_KEY, json);
+    try{ localStorage.setItem(DB_KEY, json); }
+    catch(e){ /* mirror only — IndexedDB is primary */ }
   }, 400);
 }
 
@@ -1162,6 +1386,7 @@ function toast(msg){
 
 function applySettings(){
   const s = state.settings, r = document.documentElement;
+  if (s.accent === 'crimson') s.theme = 'dark'; /* Crimson lives in the dark, always */
   r.dataset.theme = s.theme;
   r.dataset.accent = s.accent; /* lets CSS react to Crimson mode */
   r.dataset.contrast = s.contrast ? 'high' : 'normal';
@@ -1169,12 +1394,49 @@ function applySettings(){
   r.style.setProperty('--accent', ACCENTS[s.accent] || ACCENTS.glacier);
   const aur = (AURORAS[s.accent] || AURORAS.glacier)[s.theme] || AURORAS.glacier.light;
   aur.forEach((c, i) => r.style.setProperty('--aur-' + (i + 1), c));
-  r.style.setProperty('--blur', s.blur + 'px');
+  /* cap blur on small touch screens — backdrop-filter is the single
+     most expensive effect on phone GPUs */
+  const phoneTouch = r.dataset.input === 'touch' && innerWidth < 700;
+  r.style.setProperty('--blur', (phoneTouch ? Math.min(s.blur, 16) : s.blur) + 'px');
   r.style.setProperty('--radius', s.radius + 'px');
   r.style.setProperty('--font-scale', s.fontScale);
   r.style.setProperty('--density', s.density);
   const mac = /Mac/i.test(navigator.platform);
   $('#kbdHint').textContent = mac ? '⌘ K' : 'Ctrl K';
+  /* keep the iOS status bar / PWA chrome matched to the canvas */
+  const tc = $('#themeColorMeta');
+  if (tc) tc.content = getComputedStyle(r).getPropertyValue('--bg-base').trim() || '#0e1018';
+}
+
+/* ---------- device detection ----------
+   data-input: touch | fine — drives hit-target sizes & the quick tab.
+   data-form: phone | tablet | desktop — drives smart control swaps
+   (e.g. on phones the search pill yields to the pull-down gesture). */
+function applyDevice(){
+  const r = document.documentElement;
+  const touch = matchMedia('(pointer: coarse)').matches;
+  r.dataset.input = touch ? 'touch' : 'fine';
+  r.dataset.form = innerWidth < 700 ? 'phone' : (touch && innerWidth < 1100 ? 'tablet' : 'desktop');
+}
+
+/* ---------- panes + scrim ----------
+   Single entry point for opening/closing the side panels so buttons,
+   gestures, and the scrim all stay in sync. Below the breakpoints the
+   panels float as drawers over a scrim.                              */
+const sbOverlay = () => innerWidth <= 900;
+const rpOverlay = () => innerWidth <= 1160;
+function setPane(which, open){
+  const app = $('#app');
+  app.dataset[which] = open ? 'open' : 'closed';
+  state.ui[which === 'sidebar' ? 'sidebar' : 'rpanel'] = open; save();
+  syncScrim();
+}
+function syncScrim(){
+  const app = $('#app');
+  const show = (sbOverlay() && app.dataset.sidebar === 'open') ||
+               (rpOverlay() && app.dataset.rpanel === 'open');
+  $('#scrim').classList.toggle('show', show);
+  document.documentElement.classList.toggle('drawer-open', show);
 }
 
 /* ---------- icons ---------- */
@@ -1258,6 +1520,8 @@ function render(){
   }
   /* focus mode is only offered inside a note */
   $('#focusBtn').style.display = route.page === 'note' ? '' : 'none';
+  $('#qtFocus').style.display = route.page === 'note' ? '' : 'none';
+  document.documentElement.dataset.route = route.page; /* drives the phone FAB */
   if (route.page !== 'note') clearToolbarDock();
   if (route.page === 'home') renderHome(v);
   else if (route.page === 'note') renderNote(v);
@@ -1488,9 +1752,13 @@ function renderProject(v){
       confirmText: 'Delete project'
     });
     if (!ok) return;
+    const view = $('#view');
+    view.classList.add('deleting');
+    await new Promise(r => setTimeout(r, 290));
     state.notes.forEach(n => { if (n.project === p.id) n.project = null; });
     state.projects = state.projects.filter(x => x.id !== p.id);
-    save(); toast('Project deleted'); go('home');
+    save(); go('home'); view.classList.remove('deleting');
+    toast('Project deleted');
   });
   $('#taskList').addEventListener('click', e => {
     const del = e.target.closest('[data-del-task]');
@@ -1792,9 +2060,14 @@ function renderRpanel(){
       confirmText: 'Delete note'
     });
     if (!ok) return;
+    /* let the note dissolve before leaving it */
+    const view = $('#view');
+    view.classList.add('deleting');
+    await new Promise(r => setTimeout(r, 290));
     state.notes = state.notes.filter(x => x.id !== n.id);
     state.recent = state.recent.filter(x => x !== n.id);
-    save(); toast('Note deleted'); go('home');
+    save(); go('home'); view.classList.remove('deleting');
+    toast('Note deleted');
   });
   $('#qaPdf').addEventListener('click', () => openPdfDialog(n));
   $('#qaProj').addEventListener('change', e => { n.project = e.target.value || null; save(); render(); toast(n.project ? 'Moved to project' : 'Removed from project'); });
@@ -1823,16 +2096,17 @@ function glassConfirm({ title = 'Are you sure?', message = '', confirmText = 'De
     $('#confirmOverlay')?.remove();
     const ov = document.createElement('div');
     ov.id = 'confirmOverlay';
-    ov.className = 'overlay open';
+    ov.className = 'overlay open center';
     ov.setAttribute('role', 'dialog'); ov.setAttribute('aria-modal', 'true');
     ov.setAttribute('aria-label', title);
     ov.innerHTML = `
-      <div class="palette glass-strong mini-dialog">
+      <div class="palette glass-strong mini-dialog confirm-dialog">
+        <div class="confirm-ico" aria-hidden="true">${ICO.trash}</div>
         <h3>${esc(title)}</h3>
         <p>${esc(message)}</p>
         <div class="row">
-          <button class="btn" id="cfYes" style="background:#d23b3b">${esc(confirmText)}</button>
-          <button class="btn ghost" id="cfNo" style="margin-left:auto">${esc(cancelText)}</button>
+          <button class="btn danger" id="cfYes">${esc(confirmText)}</button>
+          <button class="btn ghost" id="cfNo">${esc(cancelText)}</button>
         </div>
       </div>`;
     document.body.appendChild(ov);
@@ -1893,9 +2167,9 @@ function renderSettings(v){
 
     <div class="set-card glass">
       <h3>Appearance</h3><p class="hint">Theme, color, and the feel of the glass itself.</p>
-      <div class="set-row"><div><div class="sl">Theme</div><div class="sd">Switch instantly, anywhere</div></div>
+      <div class="set-row"><div><div class="sl">Theme</div><div class="sd">${s.accent==='crimson' ? 'Crimson is dark-only' : 'Switch instantly, anywhere'}</div></div>
         <div class="seg" role="group" aria-label="Theme">
-          <button data-set-theme="light" aria-pressed="${s.theme==='light'}">Light</button>
+          <button data-set-theme="light" aria-pressed="${s.theme==='light'}" ${s.accent==='crimson' ? 'disabled' : ''}>Light</button>
           <button data-set-theme="dark" aria-pressed="${s.theme==='dark'}">Dark</button>
         </div></div>
       <div class="set-row"><div><div class="sl">Accent color</div><div class="sd">Used for selection, links, and focus</div></div>
@@ -1945,16 +2219,24 @@ function renderSettings(v){
 
   v.onclick = e => {
     const th = e.target.closest('[data-set-theme]');
-    if (th){ s.theme = th.dataset.setTheme; save(); render(); return; }
+    if (th){
+      if (s.accent === 'crimson' && th.dataset.setTheme === 'light'){
+        toast('Crimson is bound to the dark — pick another accent to go light');
+        return;
+      }
+      s.theme = th.dataset.setTheme; save(); render(); return;
+    }
     const ac = e.target.closest('[data-accent]');
     if (ac){
       const wasCrimson = s.accent === 'crimson';
-      s.accent = ac.dataset.accent; save(); render();
+      s.accent = ac.dataset.accent;
+      if (s.accent === 'crimson') s.theme = 'dark';
+      save(); render();
       if (s.accent === 'crimson' && !wasCrimson){
         const a = $('.aurora');
         a.classList.remove('flare'); void a.offsetWidth; a.classList.add('flare');
         setTimeout(() => a.classList.remove('flare'), 1300);
-        toast('Crimson unlocked');
+        toast('Crimson unlocked — dark only');
       }
       return;
     }
@@ -2089,6 +2371,10 @@ function saveCurrentNote(){
   toast('Saved');
 }
 function toggleTheme(){
+  if (state.settings.accent === 'crimson'){
+    toast('Crimson is bound to the dark — pick another accent to go light');
+    return;
+  }
   state.settings.theme = state.settings.theme === 'dark' ? 'light' : 'dark';
   applySettings(); save();
   if (route.page === 'settings') render();
@@ -2156,14 +2442,15 @@ function openPdfDialog(n){
   ov.className = 'overlay open';
   ov.setAttribute('role', 'dialog'); ov.setAttribute('aria-modal', 'true');
   ov.setAttribute('aria-label', 'Export as PDF');
+  ov.classList.add('center');
   ov.innerHTML = `
-    <div class="palette glass-strong mini-dialog">
+    <div class="palette glass-strong mini-dialog confirm-dialog" style="text-align:left">
       <h3>Export as PDF</h3>
-      <p>"${esc(n.title) || 'Untitled'}" will open in your browser's print dialog — choose "Save as PDF" there.</p>
+      <p>"${esc(n.title) || 'Untitled'}" — pick a style, then use your device's print dialog or share sheet to save it as a PDF.</p>
       <div class="row">
         <button class="btn" id="pdfThemed">Keep Glass theme</button>
         <button class="btn ghost" id="pdfPlain">Plain document</button>
-        <button class="btn ghost" id="pdfCancel" style="margin-left:auto">Cancel</button>
+        <button class="btn ghost" id="pdfCancel">Cancel</button>
       </div>
     </div>`;
   document.body.appendChild(ov);
@@ -2176,35 +2463,158 @@ function openPdfDialog(n){
     if (e.key === 'Escape'){ close(); document.removeEventListener('keydown', esc2); }
   });
 }
+/* the export is a fully self-contained HTML document: its own styles,
+   no dependence on the app's theme state or print media queries */
+function buildExportHTML(n, mode){
+  const aur = (AURORAS[state.settings.accent] || AURORAS.glacier).light;
+  const accent = ACCENT_HEX[state.settings.accent] || '#5e8bff';
+  const themed = mode === 'themed';
+  return `<!DOCTYPE html><html><head><meta charset="utf-8">
+<title>${esc(n.title) || 'Untitled'}</title>
+<style>
+  @page{ margin: 16mm; }
+  *{ box-sizing: border-box; }
+  body{ margin: 0; font: 15px/1.7 Georgia, 'Times New Roman', serif; color: #1d2433;
+        -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .sheet{ ${themed ? `border: 1px solid rgba(120,140,200,.35); border-radius: 18px; padding: 34px 36px;
+    background:
+      radial-gradient(60% 50% at 12% 0%, ${aur[0]}, transparent 70%),
+      radial-gradient(50% 45% at 95% 8%, ${aur[1]}, transparent 70%),
+      radial-gradient(55% 50% at 90% 100%, ${aur[2]}, transparent 70%),
+      #f4f5fa;` : 'padding: 8px 2px;'} }
+  h1.t{ font-size: 2rem; margin: 0 0 4px; font-weight: 600; letter-spacing: -.01em; }
+  .meta{ font-size: .78rem; color: #717a92; margin: 0 0 22px; font-family: -apple-system, 'Segoe UI', sans-serif; }
+  h1, h2, h3{ line-height: 1.25; margin: 1.3em 0 .4em; }
+  p{ margin: .55em 0; } ul, ol{ margin: .55em 0; padding-left: 1.5em; } li{ margin: .25em 0; }
+  blockquote{ margin: 1em 0; padding: 2px 0 2px 16px; border-left: 3px solid ${accent}; color: #555; font-style: italic; }
+  pre, code{ font-family: ui-monospace, Consolas, monospace; font-size: .85em; background: #f1f2f6; }
+  pre{ border: 1px solid #dfe2ec; border-radius: 10px; padding: 13px 15px; white-space: pre-wrap; }
+  code{ padding: 2px 5px; border-radius: 5px; } pre code{ padding: 0; background: none; }
+  hr{ border: none; height: 1px; background: #dfe2ec; margin: 1.8em 0; }
+  mark{ background: #ffe9a8; padding: 0 2px; border-radius: 3px; }
+  a{ color: ${accent}; }
+  .callout{ display: flex; gap: 12px; background: rgba(94,139,255,.09); border: 1px solid rgba(94,139,255,.25);
+            border-radius: 11px; padding: 13px 16px; margin: 1em 0; }
+  .callout::before{ content: '💡'; }
+  ul.checklist{ list-style: none; padding-left: .2em; }
+  ul.checklist li{ padding-left: 24px; position: relative; }
+  ul.checklist li::before{ content: ''; position: absolute; left: 0; top: .35em; width: 13px; height: 13px;
+                           border: 1.5px solid #9aa1b8; border-radius: 4px; }
+  ul.checklist li.done{ color: #8b93ab; text-decoration: line-through; }
+  ul.checklist li.done::before{ content: '✓'; color: #fff; background: ${accent}; border-color: ${accent};
+                                font: bold 10px/13px sans-serif; text-align: center; }
+  table{ border-collapse: collapse; width: 100%; margin: 1em 0; font-size: .92em; }
+  th, td{ border: 1px solid #dfe2ec; padding: 8px 12px; text-align: left; } th{ background: #f1f2f6; }
+  .foot{ margin-top: 30px; font-size: .7rem; color: #9aa1b8; font-family: -apple-system, 'Segoe UI', sans-serif; }
+</style></head>
+<body><div class="sheet">
+  <h1 class="t">${esc(n.title) || 'Untitled'}</h1>
+  <div class="meta">${fmtDate(n.modified)} · ${wordCount(n)} words${n.tags.length ? ' · ' + n.tags.map(esc).join(', ') : ''}</div>
+  <div class="body">${n.content}</div>
+  <div class="foot">made with Glass</div>
+</div></body></html>`;
+}
+function openExportTab(html){
+  const url = URL.createObjectURL(new Blob([html], { type: 'text/html' }));
+  const w = window.open(url, '_blank');
+  if (w) toast('Opened — use Share or Print there to save as PDF');
+  else toast('Allow pop-ups to export this note');
+  setTimeout(() => URL.revokeObjectURL(url), 60000);
+}
 function printNote(n, mode){
-  $('#printArea')?.remove();
-  const pa = document.createElement('div');
-  pa.id = 'printArea';
-  pa.className = mode;
-  pa.innerHTML = `
-    <h1 class="pr-title">${esc(n.title) || 'Untitled'}</h1>
-    <div class="pr-meta">${fmtDate(n.modified)} · ${wordCount(n)} words${n.tags.length ? ' · ' + n.tags.map(esc).join(', ') : ''} · made with Glass</div>
-    <div class="pr-body editor">${n.content}</div>`;
-  document.body.appendChild(pa);
-  const cleanup = () => { pa.remove(); window.removeEventListener('afterprint', cleanup); };
-  window.addEventListener('afterprint', cleanup);
-  try{ window.print(); }
-  catch(e){ toast('Printing isn\'t available here — try the desktop browser'); cleanup(); }
+  const html = buildExportHTML(n, mode);
+  /* iOS home-screen apps can't show a print dialog — hand the document
+     to the system browser where the share sheet offers Print / PDF */
+  const standalone = navigator.standalone === true || matchMedia('(display-mode: standalone)').matches;
+  if (standalone || typeof window.print !== 'function'){ openExportTab(html); return; }
+  const frame = document.createElement('iframe');
+  frame.setAttribute('aria-hidden', 'true');
+  frame.style.cssText = 'position:fixed; right:0; bottom:0; width:1px; height:1px; border:0; opacity:0; pointer-events:none;';
+  let done = false;
+  const cleanup = () => { if (done) return; done = true; setTimeout(() => frame.remove(), 400); };
+  frame.onload = () => {
+    try{
+      const w = frame.contentWindow;
+      w.onafterprint = cleanup;
+      w.focus();
+      w.print();
+      setTimeout(cleanup, 120000); /* safety net if afterprint never fires */
+    }catch(err){ cleanup(); openExportTab(html); }
+  };
+  document.body.appendChild(frame);
+  frame.srcdoc = html;
 }
 
 /* ============================================================
    Global events
    ============================================================ */
 document.addEventListener('click', e => {
+  /* tap-away closes the quick tab */
+  if (!e.target.closest('#quickTab')) closeQt();
+  /* picking a destination from the sidebar drawer closes it on narrow screens */
+  const drawerNav = () => { if (sbOverlay() && e.target.closest('.sidebar')) setPane('sidebar', false); };
   const nav = e.target.closest('[data-nav]');
-  if (nav){ go(nav.dataset.nav); return; }
+  if (nav){ go(nav.dataset.nav); drawerNav(); return; }
   const goTo = e.target.closest('[data-go]');
-  if (goTo){ go(goTo.dataset.go); return; }
+  if (goTo){ go(goTo.dataset.go); drawerNav(); return; }
   const note = e.target.closest('[data-note], [data-open-note]');
-  if (note){ go('note', note.dataset.note || note.dataset.openNote); return; }
+  if (note){ go('note', note.dataset.note || note.dataset.openNote); drawerNav(); return; }
   const proj = e.target.closest('[data-proj], [data-open-proj]');
-  if (proj){ go('project', proj.dataset.proj || proj.dataset.openProj); return; }
+  if (proj){ go('project', proj.dataset.proj || proj.dataset.openProj); drawerNav(); return; }
 });
+
+/* ============================================================
+   Touch gestures — buttons stay as the failback everywhere.
+   · swipe in from the left edge   → open sidebar
+   · swipe the sidebar left        → close it
+   · swipe in from the right edge  → open details panel
+   · swipe the details panel right → close it
+   · pull down on content (at top) → search palette
+   · swipe up near the bottom      → formatting toolbar (notes)
+   · swipe the toolbar down        → hide it
+   Mouse/trackpad input is untouched — these are touch events only.
+   ============================================================ */
+(() => {
+  const EDGE = 28;
+  let g = null;
+  document.addEventListener('touchstart', e => {
+    if (e.touches.length !== 1){ g = null; return; }
+    const t = e.touches[0];
+    const content = $('#content');
+    const r = content.getBoundingClientRect();
+    g = {
+      x: t.clientX, y: t.clientY, fired: false,
+      leftEdge: t.clientX <= EDGE,
+      rightEdge: t.clientX >= innerWidth - EDGE,
+      onSidebar: !!e.target.closest('.sidebar'),
+      onRpanel: !!e.target.closest('.rpanel'),
+      onDock: !!e.target.closest('#tbDock'),
+      inContent: !!e.target.closest('.content'),
+      atTop: content.scrollTop <= 0,
+      nearBottom: t.clientY > r.bottom - 70
+    };
+  }, { passive: true });
+  document.addEventListener('touchmove', e => {
+    if (!g || g.fired || e.touches.length !== 1) return;
+    if (document.querySelector('.overlay.open')) return; /* dialogs own the screen */
+    const t = e.touches[0];
+    const dx = t.clientX - g.x, dy = t.clientY - g.y;
+    const ax = Math.abs(dx), ay = Math.abs(dy);
+    const fire = fn => { g.fired = true; fn(); };
+    if (g.leftEdge && dx > 56 && ax > ay * 1.4) return fire(() => setPane('sidebar', true));
+    if (g.rightEdge && dx < -56 && ax > ay * 1.4) return fire(() => setPane('rpanel', true));
+    if (g.onSidebar && dx < -56 && ax > ay * 1.4) return fire(() => setPane('sidebar', false));
+    if (g.onRpanel && dx > 56 && ax > ay * 1.4) return fire(() => setPane('rpanel', false));
+    if (g.onDock && dy > 44 && ay > ax) return fire(() => {
+      tbLatch = false; const d = $('#tbDock'); d._hover = false; tbSync();
+    });
+    if (g.inContent && g.nearBottom && route.page === 'note' && dy < -44 && ay > ax)
+      return fire(() => { tbLatch = true; tbSync(); });
+    if (g.inContent && g.atTop && dy > 80 && ay > ax * 1.6 && $('#content').scrollTop <= 0)
+      return fire(openPalette);
+  }, { passive: true });
+  document.addEventListener('touchend', () => { g = null; });
+})();
 
 $('#newNoteBtn').addEventListener('click', () => createNote());
 $('#addNoteSb').addEventListener('click', () => createNote());
@@ -2212,16 +2622,28 @@ $('#addProjSb').addEventListener('click', createProject);
 $('#themeToggle').addEventListener('click', toggleTheme);
 $('#focusBtn').addEventListener('click', toggleFocus);
 $('#openPalette').addEventListener('click', openPalette);
-$('#toggleSidebar').addEventListener('click', () => {
-  const app = $('#app');
-  app.dataset.sidebar = app.dataset.sidebar === 'open' ? 'closed' : 'open';
-  state.ui.sidebar = app.dataset.sidebar === 'open'; save();
+$('#toggleSidebar').addEventListener('click', () => setPane('sidebar', $('#app').dataset.sidebar !== 'open'));
+$('#toggleRpanel').addEventListener('click', () => setPane('rpanel', $('#app').dataset.rpanel !== 'open'));
+$('#scrim').addEventListener('click', () => {
+  if (sbOverlay()) setPane('sidebar', false);
+  if (rpOverlay()) setPane('rpanel', false);
 });
-$('#toggleRpanel').addEventListener('click', () => {
-  const app = $('#app');
-  app.dataset.rpanel = app.dataset.rpanel === 'open' ? 'closed' : 'open';
-  state.ui.rpanel = app.dataset.rpanel === 'open'; save();
+
+/* quick tab (touch devices) */
+const closeQt = () => { $('#quickTab').classList.remove('open'); $('#qtHandle').setAttribute('aria-expanded', 'false'); };
+$('#qtHandle').addEventListener('click', () => {
+  const open = $('#quickTab').classList.toggle('open');
+  $('#qtHandle').setAttribute('aria-expanded', String(open));
 });
+$('#qtNew').addEventListener('click', () => { closeQt(); createNote(); });
+$('#qtSearch').addEventListener('click', () => { closeQt(); openPalette(); });
+$('#qtTheme').addEventListener('click', toggleTheme);
+$('#qtFocus').addEventListener('click', () => { closeQt(); toggleFocus(); });
+
+/* phone helpers: floating new-note button; tap the breadcrumbs to
+   glide back to the top (iOS status-bar habit) */
+$('#fabNew').addEventListener('click', () => createNote());
+$('#crumbs').addEventListener('click', () => $('#content').scrollTo({ top: 0, behavior: 'smooth' }));
 
 $('#paletteOverlay').addEventListener('mousedown', e => { if (e.target === e.currentTarget) closePalette(); });
 $('#palInput').addEventListener('input', e => { palSel = 0; buildPalette(e.target.value); });
@@ -2243,6 +2665,11 @@ document.addEventListener('keydown', e => {
   if (mod && e.key === '\\'){ e.preventDefault(); $('#toggleSidebar').click(); return; }
   if (mod && e.key === '.'){ e.preventDefault(); if (route.page === 'note') toggleFocus(); return; }
   if (mod && e.key.toLowerCase() === 's'){ e.preventDefault(); saveCurrentNote(); return; }
+  if (mod && e.key.toLowerCase() === 'p'){
+    e.preventDefault();
+    if (route.page === 'note'){ const n = noteById(route.id); if (n) openPdfDialog(n); }
+    return;
+  }
   if (e.key === 'Escape' && palOpen){ closePalette(); return; }
   if (!typing && !mod && e.key.toLowerCase() === 'n'){ e.preventDefault(); createNote(); }
 });
@@ -2256,6 +2683,7 @@ document.addEventListener('keydown', e => {
   state.settings = Object.assign(defaultState().settings, state.settings || {});
   if (state.settings.accent === 'rose') state.settings.accent = 'crimson';
   if (!ACCENTS[state.settings.accent]) state.settings.accent = 'glacier';
+  if (state.settings.accent === 'crimson') state.settings.theme = 'dark'; /* dark-only accent */
   state.ui = Object.assign({ sidebar: true, rpanel: true }, state.ui || {});
   /* keep the reference shortcuts note current with the app */
   const sc = state.notes.find(n =>
@@ -2266,8 +2694,15 @@ document.addEventListener('keydown', e => {
   app.dataset.rpanel = state.ui.rpanel ? 'open' : 'closed';
   if (innerWidth < 900) app.dataset.sidebar = 'closed';
   if (innerWidth < 1160) app.dataset.rpanel = 'closed';
+  applyDevice();
+  syncScrim();
   route.page = state.settings.defaultPage || 'home';
   render();
+  /* PWA: offline shell (needs https or localhost; skipped on file://) */
+  if ('serviceWorker' in navigator &&
+      (location.protocol === 'https:' || ['localhost', '127.0.0.1'].includes(location.hostname))){
+    navigator.serviceWorker.register('./sw.js').catch(() => {});
+  }
 })();
 
 /* panels become floating drawers on narrow windows — close them when
@@ -2278,6 +2713,9 @@ addEventListener('resize', () => {
   if (innerWidth < 900 && lastW >= 900) app.dataset.sidebar = 'closed';
   if (innerWidth < 1160 && lastW >= 1160) app.dataset.rpanel = 'closed';
   lastW = innerWidth;
+  applyDevice();
+  if (state) applySettings(); /* re-evaluate the phone blur cap */
+  syncScrim();
 });
 </script>
 </body>
